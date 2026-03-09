@@ -1492,7 +1492,7 @@ def main(page: ft.Page):
                             ft.Text("Academic Project", size=15, weight="bold", color="green900"),
                             ft.Divider(color="green100"),
                             ft.Text(
-                                "This application was developed as a Final Year Project. "
+                                "This application was developed as a Final Year Projectt. "
                                 "All data, analyses, and recommendations are for demonstration and research purposes.",
                                 size=13, color="grey700",
                             ),
