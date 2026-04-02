@@ -439,65 +439,6 @@ def main(page: ft.Page):
                 padding=ft.Padding(left=0, right=0, top=8, bottom=8),
             )
 
-        def show_alert_dialog(e):
-            dlg = ft.AlertDialog(
-                title=ft.Text("Daily Irrigation Alert", weight="bold", color="green900"),
-                content=ft.Column(
-                    tight=True, spacing=12,
-                    controls=[
-                        ft.Container(
-                            content=ft.Column(spacing=6, controls=[
-                                ft.Text("Today's Weather Summary", size=12, color="grey500", weight="bold"),
-                                ft.Row(spacing=16, controls=[
-                                    ft.Row(spacing=4, controls=[
-                                        ft.Icon(ft.Icons.THERMOSTAT, color="orange600", size=16),
-                                        ft.Text("-- °C", size=13, color="grey800"),
-                                    ]),
-                                    ft.Row(spacing=4, controls=[
-                                        ft.Icon(ft.Icons.WATER_DROP, color="blue600", size=16),
-                                        ft.Text("Rain: -- mm", size=13, color="grey800"),
-                                    ]),
-                                    ft.Row(spacing=4, controls=[
-                                        ft.Icon(ft.Icons.WATER, color="green600", size=16),
-                                        ft.Text("Hum: --%", size=13, color="grey800"),
-                                    ]),
-                                ]),
-                            ]),
-                            bgcolor="#f0f7f0", border_radius=12, padding=12,
-                        ),
-                        ft.Container(
-                            content=ft.Column(spacing=6, controls=[
-                                ft.Text("Irrigation Recommendation", size=12, color="grey500", weight="bold"),
-                                ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
-                                    ft.Text("Base irrigation:", size=13, color="grey700"),
-                                    ft.Text("-- mm/day", size=13, weight="bold", color="green800"),
-                                ]),
-                                ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
-                                    ft.Text("Weather adjustment:", size=13, color="grey700"),
-                                    ft.Text("-- mm", size=13, weight="bold", color="orange700"),
-                                ]),
-                                ft.Divider(color="green100"),
-                                ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
-                                    ft.Text("Recommended today:", size=14, weight="bold", color="green900"),
-                                    ft.Text("-- mm", size=14, weight="bold", color="green700"),
-                                ]),
-                            ]),
-                            bgcolor="white", border_radius=12, padding=12,
-                        ),
-                        ft.Text("* Requires weather API & location to be set",
-                            size=11, color="grey400", italic=True),
-                    ],
-                ),
-                actions=[
-                    ft.TextButton("Close", on_click=lambda e: (setattr(dlg, "open", False), page.update()),
-                        style=ft.ButtonStyle(color="green700")),
-                ],
-                actions_alignment=ft.MainAxisAlignment.END,
-            )
-            page.overlay.append(dlg)
-            dlg.open = True
-            page.update()
-
         switch([
             appbar("Soilco", actions=[
                 ft.IconButton(icon=ft.Icons.MENU, icon_color="white",
@@ -561,7 +502,7 @@ def main(page: ft.Page):
                                     bgcolor=ft.Colors.with_opacity(0.2, "white"),
                                     border_radius=10,
                                     padding=ft.Padding(left=12, right=12, top=8, bottom=8),
-                                    on_click=show_alert_dialog, ink=True,
+                                    on_click=lambda e: show_daily_alert("", "0.0", email), ink=True,
                                 ),
                             ]),
                             bgcolor="green700", border_radius=20, padding=20,
@@ -610,6 +551,60 @@ def main(page: ft.Page):
                             ),
                             *[prev_crop_card(c) for c in previous_crops],
                         ]),
+
+                        # Community section
+                        ft.Text("Community", size=16, weight="bold", color="green900"),
+                        ft.Row(spacing=12, controls=[
+                            ft.Container(
+                                content=ft.Column(
+                                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                                    spacing=10,
+                                    controls=[
+                                        ft.Container(
+                                            content=ft.Icon(ft.Icons.FORUM_OUTLINED, color="white", size=28),
+                                            bgcolor="green700", border_radius=16, padding=14,
+                                        ),
+                                        ft.Text("Crop Forum", size=13, weight="bold", color="green900"),
+                                        ft.Text("Chat with farmers\ngrowing your crop", size=10,
+                                            color="grey500", text_align=ft.TextAlign.CENTER),
+                                        ft.Container(
+                                            content=ft.Text("Open", size=11, color="white", weight="bold"),
+                                            bgcolor="green700", border_radius=10,
+                                            padding=ft.Padding(left=16, right=16, top=6, bottom=6),
+                                        ),
+                                    ],
+                                ),
+                                bgcolor="white", border_radius=20, padding=16,
+                                expand=True, on_click=lambda e: show_forum(email), ink=True,
+                                shadow=ft.BoxShadow(spread_radius=1, blur_radius=10,
+                                    color=ft.Colors.with_opacity(0.08, "green900")),
+                            ),
+                            ft.Container(
+                                content=ft.Column(
+                                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                                    spacing=10,
+                                    controls=[
+                                        ft.Container(
+                                            content=ft.Icon(ft.Icons.STOREFRONT_OUTLINED, color="white", size=28),
+                                            bgcolor="green700", border_radius=16, padding=14,
+                                        ),
+                                        ft.Text("Marketplace", size=13, weight="bold", color="green900"),
+                                        ft.Text("Buy & sell crops\ndirectly with farmers", size=10,
+                                            color="grey500", text_align=ft.TextAlign.CENTER),
+                                        ft.Container(
+                                            content=ft.Text("Open", size=11, color="white", weight="bold"),
+                                            bgcolor="green700", border_radius=10,
+                                            padding=ft.Padding(left=16, right=16, top=6, bottom=6),
+                                        ),
+                                    ],
+                                ),
+                                bgcolor="white", border_radius=20, padding=16,
+                                expand=True, on_click=lambda e: show_marketplace(email), ink=True,
+                                shadow=ft.BoxShadow(spread_radius=1, blur_radius=10,
+                                    color=ft.Colors.with_opacity(0.08, "green900")),
+                            ),
+                        ]),
+                        ft.Container(height=8),
                     ],
                 ),
             ),
@@ -710,61 +705,6 @@ def main(page: ft.Page):
             return ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 controls=[ft.Text(label, size=14, color="grey700"), val])
 
-        def show_irrigation_alert(e):
-            dlg = ft.AlertDialog(
-                title=ft.Text("Daily Irrigation Alert", weight="bold", color="green900"),
-                content=ft.Column(
-                    tight=True, spacing=12,
-                    controls=[
-                        ft.Container(
-                            content=ft.Column(spacing=6, controls=[
-                                ft.Text("Today's Weather Summary", size=12, color="grey500", weight="bold"),
-                                ft.Row(spacing=12, controls=[
-                                    ft.Row(spacing=4, controls=[
-                                        ft.Icon(ft.Icons.THERMOSTAT, color="orange600", size=16),
-                                        ft.Text("-- °C", size=13, color="grey800"),
-                                    ]),
-                                    ft.Row(spacing=4, controls=[
-                                        ft.Icon(ft.Icons.WATER_DROP, color="blue600", size=16),
-                                        ft.Text("Rain: -- mm", size=13, color="grey800"),
-                                    ]),
-                                ]),
-                            ]),
-                            bgcolor="#f0f7f0", border_radius=12, padding=12,
-                        ),
-                        ft.Container(
-                            content=ft.Column(spacing=8, controls=[
-                                ft.Text("Recommendation for " + crop_name, size=12, color="grey500", weight="bold"),
-                                ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
-                                    ft.Text("Base irrigation:", size=13, color="grey700"),
-                                    ft.Text("4.2 mm/day", size=13, weight="bold", color="green800"),
-                                ]),
-                                ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
-                                    ft.Text("Weather adjustment:", size=13, color="grey700"),
-                                    ft.Text("-- mm", size=13, weight="bold", color="orange700"),
-                                ]),
-                                ft.Divider(color="green100"),
-                                ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
-                                    ft.Text("Recommended today:", size=14, weight="bold", color="green900"),
-                                    ft.Text("-- mm", size=14, weight="bold", color="green700"),
-                                ]),
-                            ]),
-                            bgcolor="white", border_radius=12, padding=12,
-                        ),
-                        ft.Text("* Connect weather API to get live recommendations",
-                            size=11, color="grey400", italic=True),
-                    ],
-                ),
-                actions=[
-                    ft.TextButton("Close", on_click=lambda e: (setattr(dlg, "open", False), page.update()),
-                        style=ft.ButtonStyle(color="green700")),
-                ],
-                actions_alignment=ft.MainAxisAlignment.END,
-            )
-            page.overlay.append(dlg)
-            dlg.open = True
-            page.update()
-
         switch([
             appbar(f"{crop_name} Analysis", lambda e: show_home(email)),
             ft.Container(
@@ -808,13 +748,187 @@ def main(page: ft.Page):
                                 ft.Icon(ft.Icons.WATER_DROP, color="white", size=18),
                                 ft.Column(spacing=1, expand=True, controls=[
                                     ft.Text("Daily Irrigation Alert", size=14, weight="bold", color="white"),
-                                    ft.Text("Tap to view today's recommendation", size=11, color="#c8e6c9"),
+                                    ft.Text("Tap to view today's water schedule", size=11, color="#c8e6c9"),
                                 ]),
                                 ft.Icon(ft.Icons.ARROW_FORWARD_IOS, color="white", size=14),
                             ]),
                             bgcolor="green700", border_radius=16, padding=16,
-                            on_click=show_irrigation_alert, ink=True,
+                            on_click=lambda e: show_daily_alert(crop_name, "4.2", email), ink=True,
                             shadow=ft.BoxShadow(spread_radius=1, blur_radius=10, color=ft.Colors.with_opacity(0.15, "green900")),
+                        ),
+                    ],
+                ),
+            ),
+        ])
+
+    # ──────────────────────────────────────────────────────
+    # DAILY IRRIGATION ALERT SCREEN
+    # ──────────────────────────────────────────────────────
+    def show_daily_alert(crop_name="", base_irrigation="4.2", email=""):
+        # Placeholder weather values — will be replaced by OpenWeatherMap API
+        weather = {
+            "temp": "--",
+            "humidity": "--",
+            "wind": "--",
+            "rain_forecast": "--",
+            "condition": "Unknown",
+        }
+
+        # Irrigation calculation placeholders
+        base = float(base_irrigation)
+        rain = 0.0       # placeholder — will come from OpenWeatherMap
+        adjusted = base  # adjusted = max(0, base - rain) once weather API connected
+
+        def info_row(icon, icon_color, label, value):
+            return ft.Row(
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                controls=[
+                    ft.Row(spacing=8, controls=[
+                        ft.Icon(icon, color=icon_color, size=18),
+                        ft.Text(label, size=13, color="grey700"),
+                    ]),
+                    ft.Text(value, size=13, weight="bold", color="green900"),
+                ],
+            )
+
+        switch([
+            appbar("Daily Irrigation Alert", lambda e: show_analysis(crop_name, email)),
+            ft.Container(
+                expand=True, bgcolor="#f0f7f0",
+                padding=ft.Padding(left=16, right=16, top=16, bottom=24),
+                content=ft.Column(
+                    scroll=ft.ScrollMode.AUTO, spacing=16,
+                    controls=[
+
+                        # Crop header
+                        ft.Container(
+                            content=ft.Row(
+                                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                                controls=[
+                                    ft.Row(spacing=12, controls=[
+                                        ft.Container(
+                                            content=ft.Icon(ft.Icons.GRASS, color="white", size=22),
+                                            bgcolor="green700", border_radius=12, padding=10,
+                                        ),
+                                        ft.Column(spacing=2, controls=[
+                                            ft.Text("Crop", size=11, color="grey500"),
+                                            ft.Text(crop_name, size=18, weight="bold", color="green900"),
+                                        ]),
+                                    ]),
+                                    ft.Container(
+                                        content=ft.Text("Active", size=11, color="white"),
+                                        bgcolor="green600", border_radius=8,
+                                        padding=ft.Padding(left=10, right=10, top=4, bottom=4),
+                                    ),
+                                ],
+                            ),
+                            bgcolor="white", border_radius=16, padding=16,
+                            shadow=ft.BoxShadow(spread_radius=1, blur_radius=8, color=ft.Colors.with_opacity(0.07, "green900")),
+                        ),
+
+                        # Weather summary card
+                        ft.Container(
+                            content=ft.Column(spacing=12, controls=[
+                                ft.Row(spacing=8, controls=[
+                                    ft.Icon(ft.Icons.WB_SUNNY_OUTLINED, color="white", size=20),
+                                    ft.Text("Today's Weather", size=14, weight="bold", color="white"),
+                                ]),
+                                ft.Divider(color=ft.Colors.with_opacity(0.3, "white")),
+                                ft.Row(
+                                    alignment=ft.MainAxisAlignment.SPACE_AROUND,
+                                    controls=[
+                                        ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4, controls=[
+                                            ft.Icon(ft.Icons.THERMOSTAT, color="white", size=20),
+                                            ft.Text(f"{weather['temp']} °C", size=15, weight="bold", color="white"),
+                                            ft.Text("Temp", size=10, color="#c8e6c9"),
+                                        ]),
+                                        ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4, controls=[
+                                            ft.Icon(ft.Icons.WATER_DROP_OUTLINED, color="white", size=20),
+                                            ft.Text(f"{weather['humidity']}%", size=15, weight="bold", color="white"),
+                                            ft.Text("Humidity", size=10, color="#c8e6c9"),
+                                        ]),
+                                        ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4, controls=[
+                                            ft.Icon(ft.Icons.UMBRELLA, color="white", size=20),
+                                            ft.Text(f"{weather['rain_forecast']} mm", size=15, weight="bold", color="white"),
+                                            ft.Text("Rain", size=10, color="#c8e6c9"),
+                                        ]),
+                                        ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4, controls=[
+                                            ft.Icon(ft.Icons.AIR, color="white", size=20),
+                                            ft.Text(f"{weather['wind']} km/h", size=15, weight="bold", color="white"),
+                                            ft.Text("Wind", size=10, color="#c8e6c9"),
+                                        ]),
+                                    ],
+                                ),
+                            ]),
+                            bgcolor="green700", border_radius=20, padding=20,
+                            shadow=ft.BoxShadow(spread_radius=1, blur_radius=12, color=ft.Colors.with_opacity(0.15, "green900")),
+                        ),
+
+                        # Irrigation calculation card
+                        card(ft.Column(spacing=14, controls=[
+                            ft.Text("Water Calculation", size=15, weight="bold", color="green900"),
+                            ft.Divider(color="green100"),
+                            info_row(ft.Icons.WATER_DROP, "blue700", "Base irrigation for " + crop_name, f"{base} mm/day"),
+                            info_row(ft.Icons.UMBRELLA, "blue400", "Expected rainfall today", f"{weather['rain_forecast']} mm"),
+                            info_row(ft.Icons.REMOVE_CIRCLE_OUTLINE, "orange600", "Weather adjustment", "-- mm"),
+                            ft.Divider(color="green100"),
+                            ft.Row(
+                                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                                controls=[
+                                    ft.Text("Recommended today", size=15, weight="bold", color="green900"),
+                                    ft.Container(
+                                        content=ft.Text(f"{base} mm", size=16, weight="bold", color="white"),
+                                        bgcolor="green700", border_radius=10,
+                                        padding=ft.Padding(left=14, right=14, top=6, bottom=6),
+                                    ),
+                                ],
+                            ),
+                        ])),
+
+                        # Schedule card
+                        card(ft.Column(spacing=12, controls=[
+                            ft.Text("Suggested Schedule", size=15, weight="bold", color="green900"),
+                            ft.Divider(color="green100"),
+                            ft.Row(spacing=12, controls=[
+                                ft.Container(
+                                    content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4, controls=[
+                                        ft.Icon(ft.Icons.WB_TWILIGHT, color="orange600", size=22),
+                                        ft.Text("Morning", size=12, weight="bold", color="green900"),
+                                        ft.Text("6:00 AM", size=11, color="grey500"),
+                                        ft.Text("-- mm", size=13, weight="bold", color="green700"),
+                                    ]),
+                                    expand=True, bgcolor="#f0f7f0", border_radius=12, padding=12,
+                                    alignment=ft.Alignment(0, 0),
+                                ),
+                                ft.Container(
+                                    content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4, controls=[
+                                        ft.Icon(ft.Icons.WB_SUNNY, color="yellow700", size=22),
+                                        ft.Text("Afternoon", size=12, weight="bold", color="green900"),
+                                        ft.Text("2:00 PM", size=11, color="grey500"),
+                                        ft.Text("-- mm", size=13, weight="bold", color="green700"),
+                                    ]),
+                                    expand=True, bgcolor="#f0f7f0", border_radius=12, padding=12,
+                                    alignment=ft.Alignment(0, 0),
+                                ),
+                                ft.Container(
+                                    content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4, controls=[
+                                        ft.Icon(ft.Icons.NIGHTS_STAY, color="blue700", size=22),
+                                        ft.Text("Evening", size=12, weight="bold", color="green900"),
+                                        ft.Text("6:00 PM", size=11, color="grey500"),
+                                        ft.Text("-- mm", size=13, weight="bold", color="green700"),
+                                    ]),
+                                    expand=True, bgcolor="#f0f7f0", border_radius=12, padding=12,
+                                    alignment=ft.Alignment(0, 0),
+                                ),
+                            ]),
+                        ])),
+
+                        ft.Text(
+                            "* Live weather data requires OpenWeatherMap API & location to be set in Settings.",
+                            size=11, color="grey400", italic=True, text_align=ft.TextAlign.CENTER,
                         ),
                     ],
                 ),
@@ -870,11 +984,6 @@ def main(page: ft.Page):
                                     ft.Text(email.split("@")[0].capitalize() if email else "Farmer",
                                         size=18, weight="bold", color="green900"),
                                     ft.Text(email or "farmer@soilco.app", size=12, color="grey600"),
-                                    ft.Container(
-                                        content=ft.Text("Free Plan", size=11, color="green700"),
-                                        bgcolor="#e8f5e9", border_radius=10,
-                                        padding=ft.Padding(left=12, right=12, top=4, bottom=4),
-                                    ),
                                 ],
                             ),
                             bgcolor="white",
@@ -899,6 +1008,12 @@ def main(page: ft.Page):
                             menu_item(ft.Icons.NOTIFICATIONS_OUTLINED, "Notifications", lambda e: show_notifications(email)),
                             divider(),
                             menu_item(ft.Icons.DARK_MODE_OUTLINED, "Appearance", lambda e: show_appearance(email)),
+                        ]),
+                        section_label("Community"),
+                        section_card([
+                            menu_item(ft.Icons.FORUM_OUTLINED, "Crop Forum", lambda e: show_forum(email)),
+                            divider(),
+                            menu_item(ft.Icons.STOREFRONT_OUTLINED, "Marketplace", lambda e: show_marketplace(email)),
                         ]),
                         section_label("Support"),
                         section_card([
@@ -1253,62 +1368,20 @@ def main(page: ft.Page):
     # APPEARANCE SCREEN
     # ──────────────────────────────────────────────────────
     def show_appearance(email=""):
-        dark_mode = ft.Switch(value=False, active_color="green700")
-
-        def on_dark_toggle(e):
-            page.theme_mode = ft.ThemeMode.DARK if dark_mode.value else ft.ThemeMode.LIGHT
-            page.update()
-
-        dark_mode.on_change = on_dark_toggle
-
-        themes = [
-            {"name": "Green (Default)", "color": "green700", "selected": True},
-            {"name": "Blue", "color": "blue700", "selected": False},
-            {"name": "Teal", "color": "teal700", "selected": False},
-        ]
-
-        def theme_tile(t):
-            return ft.Container(
-                content=ft.Row(
-                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                    controls=[
-                        ft.Row(spacing=12, controls=[
-                            ft.Container(width=24, height=24, bgcolor=t["color"], border_radius=12),
-                            ft.Text(t["name"], size=14, color="grey900"),
-                        ]),
-                        ft.Icon(ft.Icons.CHECK_CIRCLE if t["selected"] else ft.Icons.RADIO_BUTTON_UNCHECKED,
-                            color="green700" if t["selected"] else "grey300", size=20),
-                    ],
-                ),
-                padding=ft.Padding(left=20, right=16, top=14, bottom=14),
-                on_click=lambda e: None, ink=True,
-            )
-
         switch([
             appbar("Appearance", lambda e: show_sidebar(email)),
             ft.Container(
                 expand=True, bgcolor="#f0f7f0",
-                padding=ft.Padding(left=16, right=16, top=20, bottom=20),
+                padding=ft.Padding(left=16, right=16, top=24, bottom=20),
                 content=ft.Column(
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    alignment=ft.MainAxisAlignment.CENTER,
                     spacing=16,
                     controls=[
-                        card(ft.Row(
-                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                            controls=[
-                                ft.Column(spacing=2, controls=[
-                                    ft.Text("Dark Mode", size=15, color="grey900"),
-                                    ft.Text("Switch to dark theme", size=12, color="grey500"),
-                                ]),
-                                dark_mode,
-                            ],
-                        )),
-                        card(ft.Column(spacing=0, controls=[
-                            ft.Container(content=ft.Text("Theme Color", size=12, color="grey500", weight="bold"),
-                                padding=ft.Padding(left=0, right=0, top=0, bottom=8)),
-                            *[t for i, t in enumerate([theme_tile(th) for th in themes])],
-                        ])),
+                        ft.Icon(ft.Icons.PALETTE_OUTLINED, color="green700", size=60),
+                        ft.Text("Appearance Settings", size=18, weight="bold", color="green900"),
+                        ft.Text("Customization options coming soon.",
+                            size=14, color="grey500", text_align=ft.TextAlign.CENTER),
                     ],
                 ),
             ),
@@ -1492,7 +1565,7 @@ def main(page: ft.Page):
                             ft.Text("Academic Project", size=15, weight="bold", color="green900"),
                             ft.Divider(color="green100"),
                             ft.Text(
-                                "This application was developed as a Final Year Projectt. "
+                                "This application was developed as a Final Year Project. "
                                 "All data, analyses, and recommendations are for demonstration and research purposes.",
                                 size=13, color="grey700",
                             ),
@@ -1503,6 +1576,585 @@ def main(page: ft.Page):
                                 alignment=ft.Alignment(0, 0),
                             ),
                         ])),
+                    ],
+                ),
+            ),
+        ])
+
+    # ──────────────────────────────────────────────────────
+    # CROP FORUM SCREEN
+    # ──────────────────────────────────────────────────────
+    def show_forum(email=""):
+        crop_channels = [
+            {"crop": "Maize",    "icon": ft.Icons.GRASS,           "members": 1240, "unread": 3},
+            {"crop": "Wheat",    "icon": ft.Icons.GRAIN,           "members": 876,  "unread": 0},
+            {"crop": "Rice",     "icon": ft.Icons.WATER_DROP,      "members": 2103, "unread": 7},
+            {"crop": "Soybean",  "icon": ft.Icons.ECO,             "members": 534,  "unread": 1},
+            {"crop": "Cotton",   "icon": ft.Icons.FILTER_VINTAGE,  "members": 389,  "unread": 0},
+            {"crop": "Tomato",   "icon": ft.Icons.CIRCLE,          "members": 991,  "unread": 2},
+            {"crop": "Cassava",  "icon": ft.Icons.PARK,            "members": 1450, "unread": 0},
+            {"crop": "Sorghum",  "icon": ft.Icons.NATURE,          "members": 620,  "unread": 4},
+        ]
+
+        def channel_tile(ch):
+            return ft.Container(
+                content=ft.Row(
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    controls=[
+                        ft.Row(spacing=14, controls=[
+                            ft.Container(
+                                content=ft.Icon(ch["icon"], color="white", size=20),
+                                bgcolor="green700", border_radius=12, padding=10,
+                                width=44, height=44,
+                            ),
+                            ft.Column(spacing=2, controls=[
+                                ft.Text(f"# {ch['crop'].lower()}-farmers",
+                                    size=14, weight="bold", color="green900"),
+                                ft.Text(f"{ch['members']:,} members",
+                                    size=11, color="grey500"),
+                            ]),
+                        ]),
+                        ft.Row(spacing=8, controls=[
+                            ft.Container(
+                                content=ft.Text(str(ch["unread"]), size=10,
+                                    color="white", weight="bold"),
+                                bgcolor="green600", border_radius=10,
+                                padding=ft.Padding(left=7, right=7, top=3, bottom=3),
+                                visible=ch["unread"] > 0,
+                            ),
+                            ft.Icon(ft.Icons.ARROW_FORWARD_IOS, color="grey300", size=14),
+                        ]),
+                    ],
+                ),
+                bgcolor="white", border_radius=14, padding=12,
+                margin=ft.Margin(left=0, right=0, top=0, bottom=8),
+                on_click=lambda e, c=ch["crop"]: show_forum_channel(c, email),
+                ink=True,
+                shadow=ft.BoxShadow(spread_radius=1, blur_radius=6,
+                    color=ft.Colors.with_opacity(0.06, "green900")),
+            )
+
+        switch([
+            appbar("Crop Forum", lambda e: show_home(email)),
+            ft.Container(
+                expand=True, bgcolor="#f0f7f0",
+                padding=ft.Padding(left=16, right=16, top=16, bottom=20),
+                content=ft.Column(
+                    scroll=ft.ScrollMode.AUTO, spacing=0,
+                    controls=[
+                        # Header banner
+                        ft.Container(
+                            content=ft.Column(spacing=6, controls=[
+                                ft.Row(spacing=10, controls=[
+                                    ft.Icon(ft.Icons.FORUM, color="white", size=28),
+                                    ft.Column(spacing=2, controls=[
+                                        ft.Text("Crop Forum", size=17, weight="bold", color="white"),
+                                        ft.Text("Connect with farmers growing your crop", size=11, color="#c8e6c9"),
+                                    ]),
+                                ]),
+                            ]),
+                            bgcolor="green700", border_radius=16, padding=16,
+                            margin=ft.Margin(left=0, right=0, top=0, bottom=14),
+                        ),
+                        ft.Container(
+                            content=ft.Row(spacing=10, controls=[
+                                ft.Icon(ft.Icons.CAMERA_ALT_OUTLINED, color="green700", size=16),
+                                ft.Text(
+                                    "Max 2 photos/day per user. Camera photos only — no screenshots.",
+                                    size=11, color="grey600", expand=True,
+                                ),
+                            ]),
+                            bgcolor="#e8f5e9", border_radius=12,
+                            padding=ft.Padding(left=12, right=12, top=10, bottom=10),
+                            margin=ft.Margin(left=0, right=0, top=0, bottom=14),
+                        ),
+                        ft.Text("Channels", size=13, color="grey500", weight="bold"),
+                        ft.Container(height=8),
+                        *[channel_tile(ch) for ch in crop_channels],
+                    ],
+                ),
+            ),
+        ])
+
+    # ──────────────────────────────────────────────────────
+    # FORUM CHANNEL SCREEN
+    # ──────────────────────────────────────────────────────
+    def show_forum_channel(crop_name, email=""):
+        username = email.split("@")[0].capitalize() if email else "Farmer"
+
+        placeholder_posts = [
+            {
+                "user": "James K.",
+                "time": "2h ago",
+                "text": f"Anyone else seeing yellowing on their {crop_name} leaves after the last rain? Checked pH and it's around 5.8.",
+                "likes": 12,
+                "replies": 4,
+                "has_photo": True,
+            },
+            {
+                "user": "Amina S.",
+                "time": "5h ago",
+                "text": f"Applied the fertilizer recommendation from Soilco last week. {crop_name} looking much healthier. N:45 P:22 K:30.",
+                "likes": 28,
+                "replies": 9,
+                "has_photo": False,
+            },
+            {
+                "user": "David O.",
+                "time": "1d ago",
+                "text": "What irrigation schedule are you all using this season? Getting conflicting advice.",
+                "likes": 6,
+                "replies": 15,
+                "has_photo": True,
+            },
+        ]
+
+        photos_today = {"count": 0}
+
+        msg_field = ft.TextField(
+            hint_text=f"Message #{crop_name.lower()}-farmers...",
+            border_radius=20,
+            border_color="green200",
+            focused_border_color="green700",
+            bgcolor="white",
+            expand=True,
+            min_lines=1,
+            max_lines=3,
+            content_padding=ft.Padding(left=16, right=16, top=10, bottom=10),
+        )
+
+        def post_tile(p):
+            return ft.Container(
+                content=ft.Column(spacing=8, controls=[
+                    ft.Row(
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                        controls=[
+                            ft.Row(spacing=8, controls=[
+                                ft.Container(
+                                    content=ft.Text(p["user"][0], size=13,
+                                        color="white", weight="bold"),
+                                    bgcolor="green700", border_radius=16,
+                                    width=32, height=32,
+                                    alignment=ft.Alignment(0, 0),
+                                ),
+                                ft.Column(spacing=1, controls=[
+                                    ft.Text(p["user"], size=13, weight="bold",
+                                        color="green900"),
+                                    ft.Text(p["time"], size=10, color="grey400"),
+                                ]),
+                            ]),
+                        ],
+                    ),
+                    ft.Text(p["text"], size=13, color="grey800"),
+                    ft.Container(
+                        content=ft.Row(spacing=4, controls=[
+                            ft.Icon(ft.Icons.IMAGE_OUTLINED, color="green500", size=14),
+                            ft.Text("1 photo attached", size=11, color="green600"),
+                        ]),
+                        visible=p["has_photo"],
+                    ),
+                    ft.Row(spacing=16, controls=[
+                        ft.Row(spacing=4, controls=[
+                            ft.Icon(ft.Icons.FAVORITE_BORDER, color="grey400", size=15),
+                            ft.Text(str(p["likes"]), size=11, color="grey500"),
+                        ]),
+                        ft.Row(spacing=4, controls=[
+                            ft.Icon(ft.Icons.CHAT_BUBBLE_OUTLINE, color="grey400", size=15),
+                            ft.Text(str(p["replies"]), size=11, color="grey500"),
+                        ]),
+                    ]),
+                ]),
+                bgcolor="white", border_radius=14, padding=14,
+                margin=ft.Margin(left=0, right=0, top=0, bottom=8),
+                shadow=ft.BoxShadow(spread_radius=1, blur_radius=6,
+                    color=ft.Colors.with_opacity(0.06, "green900")),
+            )
+
+        def on_photo(e):
+            if photos_today["count"] >= 2:
+                dlg = ft.AlertDialog(
+                    title=ft.Text("Daily Limit Reached", color="red700", weight="bold"),
+                    content=ft.Text(
+                        "You can only upload 2 photos per day in the forum. "
+                        "This keeps the channel focused and high quality.",
+                        size=13, color="grey700",
+                    ),
+                    actions=[ft.TextButton("OK",
+                        on_click=lambda e: (setattr(dlg, "open", False), page.update()),
+                        style=ft.ButtonStyle(color="green700"))],
+                    actions_alignment=ft.MainAxisAlignment.END,
+                )
+                page.overlay.append(dlg)
+                dlg.open = True
+                page.update()
+            else:
+                dlg = ft.AlertDialog(
+                    title=ft.Text("Add Photo", color="green900", weight="bold"),
+                    content=ft.Column(tight=True, spacing=12, controls=[
+                        ft.Text(
+                            "Photos must be taken directly from your device camera. "
+                            "Screenshots and downloaded images are not accepted.",
+                            size=13, color="grey600",
+                        ),
+                        ft.Text(
+                            f"Photos used today: {photos_today['count']}/2",
+                            size=12, color="green700", weight="bold",
+                        ),
+                    ]),
+                    actions=[
+                        ft.TextButton("Cancel",
+                            on_click=lambda e: (setattr(dlg, "open", False), page.update()),
+                            style=ft.ButtonStyle(color="grey500")),
+                        ft.TextButton("Open Camera",
+                            on_click=lambda e: (
+                                photos_today.update({"count": photos_today["count"] + 1}),
+                                setattr(dlg, "open", False),
+                                page.update()
+                            ),
+                            style=ft.ButtonStyle(color="green700")),
+                    ],
+                    actions_alignment=ft.MainAxisAlignment.END,
+                )
+                page.overlay.append(dlg)
+                dlg.open = True
+                page.update()
+
+        photo_badge = ft.Container(
+            content=ft.Text(f"{2 - photos_today['count']} photos left today",
+                size=10, color="green600"),
+            bgcolor="#e8f5e9", border_radius=10,
+            padding=ft.Padding(left=8, right=8, top=3, bottom=3),
+        )
+
+        switch([
+            appbar(f"#{crop_name.lower()}-farmers", lambda e: show_forum(email)),
+            ft.Container(
+                expand=True, bgcolor="#f0f7f0",
+                content=ft.Column(
+                    spacing=0,
+                    controls=[
+                        ft.Container(
+                            content=ft.Row(
+                                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                                controls=[
+                                    ft.Row(spacing=6, controls=[
+                                        ft.Container(
+                                            content=ft.Icon(ft.Icons.CIRCLE,
+                                                color="green500", size=8),
+                                        ),
+                                        ft.Text(f"{crop_name} Farmers Channel",
+                                            size=12, color="grey600"),
+                                    ]),
+                                    photo_badge,
+                                ],
+                            ),
+                            bgcolor="white",
+                            padding=ft.Padding(left=16, right=16, top=8, bottom=8),
+                            shadow=ft.BoxShadow(spread_radius=0, blur_radius=4,
+                                color=ft.Colors.with_opacity(0.05, "green900")),
+                        ),
+                        ft.Container(
+                            expand=True,
+                            padding=ft.Padding(left=16, right=16, top=12, bottom=8),
+                            content=ft.Column(
+                                scroll=ft.ScrollMode.AUTO, spacing=0,
+                                controls=[*[post_tile(p) for p in placeholder_posts]],
+                            ),
+                        ),
+                        ft.Container(
+                            content=ft.Row(spacing=8, controls=[
+                                ft.IconButton(
+                                    icon=ft.Icons.ADD_PHOTO_ALTERNATE_OUTLINED,
+                                    icon_color="green700", icon_size=22,
+                                    tooltip="Add photo (max 2/day)",
+                                    on_click=on_photo,
+                                ),
+                                msg_field,
+                                ft.IconButton(
+                                    icon=ft.Icons.SEND_ROUNDED,
+                                    icon_color="green700", icon_size=22,
+                                    on_click=lambda e: None,
+                                ),
+                            ]),
+                            bgcolor="white",
+                            padding=ft.Padding(left=8, right=8, top=8, bottom=8),
+                            shadow=ft.BoxShadow(spread_radius=0, blur_radius=8,
+                                color=ft.Colors.with_opacity(0.08, "green900")),
+                        ),
+                    ],
+                ),
+            ),
+        ])
+
+    # ──────────────────────────────────────────────────────
+    # MARKETPLACE SCREEN
+    # ──────────────────────────────────────────────────────
+    def show_marketplace(email=""):
+        listings = [
+            {"seller": "James K.",    "crop": "Maize",   "qty": "500 kg",  "price": "$0.22/kg", "location": "Accra, Ghana",        "verified": True},
+            {"seller": "Amina S.",    "crop": "Rice",    "qty": "1,200 kg","price": "$0.40/kg", "location": "Kano, Nigeria",       "verified": True},
+            {"seller": "David O.",    "crop": "Soybean", "qty": "300 kg",  "price": "$0.50/kg", "location": "Nairobi, Kenya",      "verified": False},
+            {"seller": "Fatima B.",   "crop": "Wheat",   "qty": "800 kg",  "price": "$0.29/kg", "location": "Lahore, Pakistan",    "verified": True},
+            {"seller": "Carlos M.",   "crop": "Cotton",  "qty": "2,000 kg","price": "$0.75/kg", "location": "Sao Paulo, Brazil",   "verified": False},
+            {"seller": "Priya N.",    "crop": "Tomato",  "qty": "150 kg",  "price": "$0.35/kg", "location": "Mumbai, India",       "verified": True},
+        ]
+
+        def listing_card(l):
+            return ft.Container(
+                content=ft.Column(spacing=10, controls=[
+                    ft.Row(
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                        controls=[
+                            ft.Row(spacing=10, controls=[
+                                ft.Container(
+                                    content=ft.Text(l["seller"][0], size=15,
+                                        color="white", weight="bold"),
+                                    bgcolor="green700", border_radius=20,
+                                    width=38, height=38,
+                                    alignment=ft.Alignment(0, 0),
+                                ),
+                                ft.Column(spacing=1, controls=[
+                                    ft.Row(spacing=6, controls=[
+                                        ft.Text(l["seller"], size=13,
+                                            weight="bold", color="green900"),
+                                        ft.Container(
+                                            content=ft.Row(spacing=3, controls=[
+                                                ft.Icon(ft.Icons.VERIFIED,
+                                                    color="white", size=10),
+                                                ft.Text("Verified", size=9,
+                                                    color="white"),
+                                            ]),
+                                            bgcolor="green600", border_radius=8,
+                                            padding=ft.Padding(left=6, right=6,
+                                                top=2, bottom=2),
+                                            visible=l["verified"],
+                                        ),
+                                    ]),
+                                    ft.Row(spacing=4, controls=[
+                                        ft.Icon(ft.Icons.LOCATION_ON,
+                                            color="grey400", size=12),
+                                        ft.Text(l["location"], size=11,
+                                            color="grey500"),
+                                    ]),
+                                ]),
+                            ]),
+                            ft.Column(
+                                horizontal_alignment=ft.CrossAxisAlignment.END,
+                                spacing=2,
+                                controls=[
+                                    ft.Text(l["price"], size=14, weight="bold",
+                                        color="green800"),
+                                    ft.Text(l["qty"], size=11, color="grey500"),
+                                ],
+                            ),
+                        ],
+                    ),
+                    ft.Row(
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                        controls=[
+                            ft.Container(
+                                content=ft.Row(spacing=6, controls=[
+                                    ft.Icon(ft.Icons.GRASS, color="green700", size=14),
+                                    ft.Text(l["crop"], size=12, color="green800",
+                                        weight="bold"),
+                                ]),
+                                bgcolor="#e8f5e9", border_radius=8,
+                                padding=ft.Padding(left=10, right=10, top=4, bottom=4),
+                            ),
+                            ft.Container(
+                                content=ft.Row(spacing=6, controls=[
+                                    ft.Icon(ft.Icons.CHAT_BUBBLE_OUTLINE,
+                                        color="white", size=14),
+                                    ft.Text("Contact Seller", size=12,
+                                        color="white", weight="bold"),
+                                ]),
+                                bgcolor="green700", border_radius=10,
+                                padding=ft.Padding(left=12, right=12, top=6, bottom=6),
+                                on_click=lambda e, s=l["seller"]: show_chat(s, email),
+                                ink=True,
+                            ),
+                        ],
+                    ),
+                ]),
+                bgcolor="white", border_radius=16, padding=14,
+                margin=ft.Margin(left=0, right=0, top=0, bottom=10),
+                shadow=ft.BoxShadow(spread_radius=1, blur_radius=6,
+                    color=ft.Colors.with_opacity(0.06, "green900")),
+            )
+
+        switch([
+            appbar("Marketplace", lambda e: show_home(email)),
+            ft.Container(
+                expand=True, bgcolor="#f0f7f0",
+                padding=ft.Padding(left=16, right=16, top=16, bottom=20),
+                content=ft.Column(
+                    scroll=ft.ScrollMode.AUTO, spacing=0,
+                    controls=[
+                        # Header banner
+                        ft.Container(
+                            content=ft.Column(spacing=6, controls=[
+                                ft.Row(spacing=10, controls=[
+                                    ft.Icon(ft.Icons.STOREFRONT, color="white", size=28),
+                                    ft.Column(spacing=2, controls=[
+                                        ft.Text("Marketplace", size=17, weight="bold", color="white"),
+                                        ft.Text("Buy and sell crops directly with farmers", size=11, color="#c8e6c9"),
+                                    ]),
+                                ]),
+                            ]),
+                            bgcolor="green700", border_radius=16, padding=16,
+                            margin=ft.Margin(left=0, right=0, top=0, bottom=14),
+                        ),
+                        ft.Row(
+                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                            controls=[
+                                ft.Text("Available Listings", size=15,
+                                    weight="bold", color="green900"),
+                                ft.Container(
+                                    content=ft.Row(spacing=6, controls=[
+                                        ft.Icon(ft.Icons.ADD, color="white", size=16),
+                                        ft.Text("List Crop", size=12, color="white", weight="bold"),
+                                    ]),
+                                    bgcolor="green700", border_radius=10,
+                                    padding=ft.Padding(left=12, right=12, top=6, bottom=6),
+                                    on_click=lambda e: None, ink=True,
+                                ),
+                            ],
+                        ),
+                        ft.Container(height=10),
+                        *[listing_card(l) for l in listings],
+                    ],
+                ),
+            ),
+        ])
+
+    # ──────────────────────────────────────────────────────
+    # P2P CHAT SCREEN
+    # ──────────────────────────────────────────────────────
+    def show_chat(seller_name, email=""):
+        username = email.split("@")[0].capitalize() if email else "You"
+
+        messages = [
+            {"sender": seller_name, "text": "Hello! Yes the maize is still available. Harvested last week.", "time": "10:32 AM"},
+            {"sender": username,    "text": "Great! What is the minimum order quantity?", "time": "10:35 AM"},
+            {"sender": seller_name, "text": "Minimum is 50kg. I can arrange delivery within 50km.", "time": "10:37 AM"},
+        ]
+
+        msg_field = ft.TextField(
+            hint_text="Type a message...",
+            border_radius=20,
+            border_color="green200",
+            focused_border_color="green700",
+            bgcolor="white",
+            expand=True,
+            min_lines=1,
+            max_lines=4,
+            content_padding=ft.Padding(left=16, right=16, top=10, bottom=10),
+        )
+
+        chat_column = ft.Column(
+            scroll=ft.ScrollMode.AUTO,
+            spacing=8,
+            controls=[],
+        )
+
+        def bubble(m):
+            is_me = m["sender"] == username
+            return ft.Row(
+                alignment=ft.MainAxisAlignment.END if is_me
+                    else ft.MainAxisAlignment.START,
+                controls=[
+                    ft.Container(
+                        content=ft.Column(spacing=3, controls=[
+                            ft.Text(m["sender"], size=10,
+                                color="green700" if not is_me else "white70",
+                                weight="bold",
+                                visible=not is_me,
+                            ),
+                            ft.Text(m["text"], size=13,
+                                color="white" if is_me else "grey900"),
+                            ft.Text(m["time"], size=9,
+                                color="white70" if is_me else "grey400"),
+                        ]),
+                        bgcolor="green700" if is_me else "white",
+                        border_radius=ft.BorderRadius(
+                            top_left=16, top_right=16,
+                            bottom_left=4 if is_me else 16,
+                            bottom_right=16 if is_me else 4,
+                        ),
+                        padding=ft.Padding(left=14, right=14, top=10, bottom=8),
+                        max_width=260,
+                        shadow=ft.BoxShadow(spread_radius=1, blur_radius=4,
+                            color=ft.Colors.with_opacity(0.08, "green900")),
+                    )
+                ],
+            )
+
+        for m in messages:
+            chat_column.controls.append(bubble(m))
+
+        def on_send(e):
+            if msg_field.value and msg_field.value.strip():
+                new_msg = {
+                    "sender": username,
+                    "text": msg_field.value.strip(),
+                    "time": "Just now",
+                }
+                chat_column.controls.append(bubble(new_msg))
+                msg_field.value = ""
+                page.update()
+
+        switch([
+            appbar(seller_name, lambda e: show_marketplace(email)),
+            ft.Container(
+                expand=True, bgcolor="#f0f7f0",
+                content=ft.Column(
+                    spacing=0,
+                    controls=[
+                        ft.Container(
+                            content=ft.Row(spacing=10, controls=[
+                                ft.Container(
+                                    content=ft.Text(seller_name[0], size=14,
+                                        color="white", weight="bold"),
+                                    bgcolor="green700", border_radius=20,
+                                    width=36, height=36,
+                                    alignment=ft.Alignment(0, 0),
+                                ),
+                                ft.Column(spacing=1, controls=[
+                                    ft.Text(seller_name, size=14,
+                                        weight="bold", color="green900"),
+                                    ft.Text("Farmer · Online", size=11,
+                                        color="green600"),
+                                ]),
+                            ]),
+                            bgcolor="white",
+                            padding=ft.Padding(left=16, right=16, top=10, bottom=10),
+                            shadow=ft.BoxShadow(spread_radius=0, blur_radius=4,
+                                color=ft.Colors.with_opacity(0.05, "green900")),
+                        ),
+                        ft.Container(
+                            expand=True,
+                            padding=ft.Padding(left=16, right=16, top=12, bottom=8),
+                            content=chat_column,
+                        ),
+                        ft.Container(
+                            content=ft.Row(spacing=8, controls=[
+                                msg_field,
+                                ft.IconButton(
+                                    icon=ft.Icons.SEND_ROUNDED,
+                                    icon_color="green700",
+                                    icon_size=22,
+                                    on_click=on_send,
+                                ),
+                            ]),
+                            bgcolor="white",
+                            padding=ft.Padding(left=12, right=8, top=8, bottom=8),
+                            shadow=ft.BoxShadow(spread_radius=0, blur_radius=8,
+                                color=ft.Colors.with_opacity(0.08, "green900")),
+                        ),
                     ],
                 ),
             ),
