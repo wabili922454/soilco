@@ -68,6 +68,55 @@ def main(page: ft.Page):
             actions=actions or [],
         )
 
+    def nav_bar(active, email):
+        tabs = [
+            {"label": "Home",        "icon": ft.Icons.HOME_OUTLINED,       "icon_active": ft.Icons.HOME,           "fn": lambda e: show_home(email)},
+            {"label": "Forum",       "icon": ft.Icons.FORUM_OUTLINED,      "icon_active": ft.Icons.FORUM,          "fn": lambda e: show_forum(email)},
+            {"label": "Market",      "icon": ft.Icons.STOREFRONT_OUTLINED, "icon_active": ft.Icons.STOREFRONT,     "fn": lambda e: show_marketplace(email)},
+            {"label": "Profile",     "icon": ft.Icons.PERSON_OUTLINE,      "icon_active": ft.Icons.PERSON,         "fn": lambda e: show_profile(email)},
+        ]
+
+        def tab_btn(t):
+            is_active = t["label"] == active
+            return ft.Container(
+                content=ft.Column(
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    spacing=3,
+                    controls=[
+                        ft.Icon(
+                            t["icon_active"] if is_active else t["icon"],
+                            color="green700" if is_active else "grey500",
+                            size=24,
+                        ),
+                        ft.Text(
+                            t["label"],
+                            size=10,
+                            color="green700" if is_active else "grey500",
+                            weight="bold" if is_active else "normal",
+                        ),
+                    ],
+                ),
+                expand=True,
+                on_click=t["fn"],
+                ink=True,
+                padding=ft.Padding(top=8, bottom=8, left=0, right=0),
+            )
+
+        return ft.Container(
+            content=ft.Row(
+                spacing=0,
+                controls=[tab_btn(t) for t in tabs],
+            ),
+            bgcolor="white",
+            border_radius=ft.BorderRadius(top_left=20, top_right=20, bottom_left=0, bottom_right=0),
+            shadow=ft.BoxShadow(
+                spread_radius=0, blur_radius=16,
+                color=ft.Colors.with_opacity(0.1, "green900"),
+                offset=ft.Offset(0, -2),
+            ),
+            padding=ft.Padding(left=8, right=8, top=0, bottom=0),
+        )
+
     # ──────────────────────────────────────────────────────
     # SPLASH SCREEN
     # ──────────────────────────────────────────────────────
@@ -520,6 +569,39 @@ def main(page: ft.Page):
                             status,
                         ])),
 
+                        # Soil pH Estimator card
+                        ft.Container(
+                            content=ft.Row(
+                                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                                controls=[
+                                    ft.Row(spacing=12, controls=[
+                                        ft.Container(
+                                            content=ft.Icon(ft.Icons.WATER_DROP,
+                                                color="white", size=22),
+                                            bgcolor="brown400", border_radius=12, padding=10,
+                                        ),
+                                        ft.Column(spacing=3, controls=[
+                                            ft.Text("Soil pH Estimator", size=14,
+                                                weight="bold", color="green900"),
+                                            ft.Text("Check soil suitability for your crop",
+                                                size=11, color="grey500"),
+                                        ]),
+                                    ]),
+                                    ft.Container(
+                                        content=ft.Text("Open", size=11,
+                                            color="white", weight="bold"),
+                                        bgcolor="green700", border_radius=10,
+                                        padding=ft.Padding(left=12, right=12, top=6, bottom=6),
+                                    ),
+                                ],
+                            ),
+                            bgcolor="white", border_radius=20, padding=16,
+                            on_click=lambda e: show_ph_estimator(email), ink=True,
+                            shadow=ft.BoxShadow(spread_radius=1, blur_radius=10,
+                                color=ft.Colors.with_opacity(0.08, "green900")),
+                        ),
+
                         # Market prices
                         card(ft.Column(spacing=0, controls=[
                             ft.Row(
@@ -551,63 +633,11 @@ def main(page: ft.Page):
                             ),
                             *[prev_crop_card(c) for c in previous_crops],
                         ]),
-
-                        # Community section
-                        ft.Text("Community", size=16, weight="bold", color="green900"),
-                        ft.Row(spacing=12, controls=[
-                            ft.Container(
-                                content=ft.Column(
-                                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                                    spacing=10,
-                                    controls=[
-                                        ft.Container(
-                                            content=ft.Icon(ft.Icons.FORUM_OUTLINED, color="white", size=28),
-                                            bgcolor="green700", border_radius=16, padding=14,
-                                        ),
-                                        ft.Text("Crop Forum", size=13, weight="bold", color="green900"),
-                                        ft.Text("Chat with farmers\ngrowing your crop", size=10,
-                                            color="grey500", text_align=ft.TextAlign.CENTER),
-                                        ft.Container(
-                                            content=ft.Text("Open", size=11, color="white", weight="bold"),
-                                            bgcolor="green700", border_radius=10,
-                                            padding=ft.Padding(left=16, right=16, top=6, bottom=6),
-                                        ),
-                                    ],
-                                ),
-                                bgcolor="white", border_radius=20, padding=16,
-                                expand=True, on_click=lambda e: show_forum(email), ink=True,
-                                shadow=ft.BoxShadow(spread_radius=1, blur_radius=10,
-                                    color=ft.Colors.with_opacity(0.08, "green900")),
-                            ),
-                            ft.Container(
-                                content=ft.Column(
-                                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                                    spacing=10,
-                                    controls=[
-                                        ft.Container(
-                                            content=ft.Icon(ft.Icons.STOREFRONT_OUTLINED, color="white", size=28),
-                                            bgcolor="green700", border_radius=16, padding=14,
-                                        ),
-                                        ft.Text("Marketplace", size=13, weight="bold", color="green900"),
-                                        ft.Text("Buy & sell crops\ndirectly with farmers", size=10,
-                                            color="grey500", text_align=ft.TextAlign.CENTER),
-                                        ft.Container(
-                                            content=ft.Text("Open", size=11, color="white", weight="bold"),
-                                            bgcolor="green700", border_radius=10,
-                                            padding=ft.Padding(left=16, right=16, top=6, bottom=6),
-                                        ),
-                                    ],
-                                ),
-                                bgcolor="white", border_radius=20, padding=16,
-                                expand=True, on_click=lambda e: show_marketplace(email), ink=True,
-                                shadow=ft.BoxShadow(spread_radius=1, blur_radius=10,
-                                    color=ft.Colors.with_opacity(0.08, "green900")),
-                            ),
-                        ]),
-                        ft.Container(height=8),
+                        ft.Container(height=70),
                     ],
                 ),
             ),
+            nav_bar("Home", email),
         ])
 
     # ──────────────────────────────────────────────────────
@@ -1030,13 +1060,14 @@ def main(page: ft.Page):
                             ]),
                             padding=ft.Padding(left=20, right=20, top=14, bottom=14),
                             bgcolor="white", border_radius=16,
-                            margin=ft.Margin(left=16, right=16, top=4, bottom=30),
+                            margin=ft.Margin(left=16, right=16, top=4, bottom=80),
                             on_click=lambda e: show_login(), ink=True,
                             shadow=ft.BoxShadow(spread_radius=1, blur_radius=8, color=ft.Colors.with_opacity(0.06, "green900")),
                         ),
                     ],
                 ),
             ),
+            nav_bar("Profile", email),
         ])
 
     # ──────────────────────────────────────────────────────
@@ -1672,9 +1703,11 @@ def main(page: ft.Page):
                         ft.Text("Channels", size=13, color="grey500", weight="bold"),
                         ft.Container(height=8),
                         *[channel_tile(ch) for ch in crop_channels],
+                        ft.Container(height=70),
                     ],
                 ),
             ),
+            nav_bar("Forum", email),
         ])
 
     # ──────────────────────────────────────────────────────
@@ -1828,7 +1861,15 @@ def main(page: ft.Page):
         )
 
         switch([
-            appbar(f"#{crop_name.lower()}-farmers", lambda e: show_forum(email)),
+            appbar(f"#{crop_name.lower()}-farmers", lambda e: show_forum(email),
+                actions=[
+                    ft.IconButton(
+                        icon=ft.Icons.EDIT_NOTE,
+                        icon_color="white",
+                        tooltip="New Post",
+                        on_click=lambda e: show_new_post(crop_name, email),
+                    )
+                ]),
             ft.Container(
                 expand=True, bgcolor="#f0f7f0",
                 content=ft.Column(
@@ -1888,19 +1929,31 @@ def main(page: ft.Page):
         ])
 
     # ──────────────────────────────────────────────────────
-    # MARKETPLACE SCREEN
+    # MARKETPLACE — BUYER / SELLER DUAL SIDE
     # ──────────────────────────────────────────────────────
-    def show_marketplace(email=""):
+    def show_marketplace(email="", active_tab="buyer"):
+        # BACKEND PLACEHOLDER: Fetch listings from Supabase `marketplace_listings`
+        #   SELECT * FROM marketplace_listings ORDER BY created_at DESC
+        # BACKEND PLACEHOLDER: Fetch user's own listings for Seller tab
+        #   SELECT * FROM marketplace_listings WHERE user_id = current_user_id
+
         listings = [
-            {"seller": "James K.",    "crop": "Maize",   "qty": "500 kg",  "price": "$0.22/kg", "location": "Accra, Ghana",        "verified": True},
-            {"seller": "Amina S.",    "crop": "Rice",    "qty": "1,200 kg","price": "$0.40/kg", "location": "Kano, Nigeria",       "verified": True},
-            {"seller": "David O.",    "crop": "Soybean", "qty": "300 kg",  "price": "$0.50/kg", "location": "Nairobi, Kenya",      "verified": False},
-            {"seller": "Fatima B.",   "crop": "Wheat",   "qty": "800 kg",  "price": "$0.29/kg", "location": "Lahore, Pakistan",    "verified": True},
-            {"seller": "Carlos M.",   "crop": "Cotton",  "qty": "2,000 kg","price": "$0.75/kg", "location": "Sao Paulo, Brazil",   "verified": False},
-            {"seller": "Priya N.",    "crop": "Tomato",  "qty": "150 kg",  "price": "$0.35/kg", "location": "Mumbai, India",       "verified": True},
+            {"seller": "James K.",  "crop": "Maize",   "qty": "500 kg",   "price": "$0.22/kg", "location": "Accra, Ghana",      "verified": True,  "status": "Available"},
+            {"seller": "Amina S.",  "crop": "Rice",    "qty": "1,200 kg", "price": "$0.40/kg", "location": "Kano, Nigeria",     "verified": True,  "status": "Available"},
+            {"seller": "David O.",  "crop": "Soybean", "qty": "300 kg",   "price": "$0.50/kg", "location": "Nairobi, Kenya",    "verified": False, "status": "Available"},
+            {"seller": "Fatima B.", "crop": "Wheat",   "qty": "800 kg",   "price": "$0.29/kg", "location": "Lahore, Pakistan",  "verified": True,  "status": "Available"},
+            {"seller": "Carlos M.", "crop": "Cotton",  "qty": "2,000 kg", "price": "$0.75/kg", "location": "Sao Paulo, Brazil", "verified": False, "status": "Sold Out"},
+            {"seller": "Priya N.",  "crop": "Tomato",  "qty": "150 kg",   "price": "$0.35/kg", "location": "Mumbai, India",     "verified": True,  "status": "Available"},
         ]
 
-        def listing_card(l):
+        # Placeholder seller's own listings
+        my_listings = [
+            {"crop": "Maize", "qty": "200 kg", "price": "$0.20/kg", "location": "My Farm", "status": "Available",  "inquiries": 3},
+            {"crop": "Rice",  "qty": "500 kg", "price": "$0.38/kg", "location": "My Farm", "status": "Sold Out",   "inquiries": 8},
+        ]
+
+        def buyer_listing_card(l):
+            is_available = l["status"] == "Available"
             return ft.Container(
                 content=ft.Column(spacing=10, controls=[
                     ft.Row(
@@ -1923,58 +1976,60 @@ def main(page: ft.Page):
                                             content=ft.Row(spacing=3, controls=[
                                                 ft.Icon(ft.Icons.VERIFIED,
                                                     color="white", size=10),
-                                                ft.Text("Verified", size=9,
-                                                    color="white"),
+                                                ft.Text("Verified", size=9, color="white"),
                                             ]),
                                             bgcolor="green600", border_radius=8,
-                                            padding=ft.Padding(left=6, right=6,
-                                                top=2, bottom=2),
+                                            padding=ft.Padding(left=6, right=6, top=2, bottom=2),
                                             visible=l["verified"],
                                         ),
                                     ]),
                                     ft.Row(spacing=4, controls=[
-                                        ft.Icon(ft.Icons.LOCATION_ON,
-                                            color="grey400", size=12),
-                                        ft.Text(l["location"], size=11,
-                                            color="grey500"),
+                                        ft.Icon(ft.Icons.LOCATION_ON, color="grey400", size=12),
+                                        ft.Text(l["location"], size=11, color="grey500"),
                                     ]),
                                 ]),
                             ]),
-                            ft.Column(
-                                horizontal_alignment=ft.CrossAxisAlignment.END,
-                                spacing=2,
-                                controls=[
-                                    ft.Text(l["price"], size=14, weight="bold",
-                                        color="green800"),
-                                    ft.Text(l["qty"], size=11, color="grey500"),
-                                ],
-                            ),
+                            ft.Column(horizontal_alignment=ft.CrossAxisAlignment.END,
+                                spacing=3, controls=[
+                                ft.Text(l["price"], size=15, weight="bold", color="green800"),
+                                ft.Text(l["qty"], size=11, color="grey500"),
+                            ]),
                         ],
                     ),
                     ft.Row(
                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                         vertical_alignment=ft.CrossAxisAlignment.CENTER,
                         controls=[
-                            ft.Container(
-                                content=ft.Row(spacing=6, controls=[
-                                    ft.Icon(ft.Icons.GRASS, color="green700", size=14),
-                                    ft.Text(l["crop"], size=12, color="green800",
-                                        weight="bold"),
-                                ]),
-                                bgcolor="#e8f5e9", border_radius=8,
-                                padding=ft.Padding(left=10, right=10, top=4, bottom=4),
-                            ),
+                            ft.Row(spacing=8, controls=[
+                                ft.Container(
+                                    content=ft.Row(spacing=5, controls=[
+                                        ft.Icon(ft.Icons.GRASS, color="green700", size=13),
+                                        ft.Text(l["crop"], size=12, color="green800",
+                                            weight="bold"),
+                                    ]),
+                                    bgcolor="#e8f5e9", border_radius=8,
+                                    padding=ft.Padding(left=10, right=10, top=4, bottom=4),
+                                ),
+                                ft.Container(
+                                    content=ft.Text(l["status"], size=10,
+                                        color="white", weight="bold"),
+                                    bgcolor="green600" if is_available else "grey400",
+                                    border_radius=8,
+                                    padding=ft.Padding(left=8, right=8, top=3, bottom=3),
+                                ),
+                            ]),
                             ft.Container(
                                 content=ft.Row(spacing=6, controls=[
                                     ft.Icon(ft.Icons.CHAT_BUBBLE_OUTLINE,
-                                        color="white", size=14),
-                                    ft.Text("Contact Seller", size=12,
-                                        color="white", weight="bold"),
+                                        color="white", size=13),
+                                    ft.Text("Contact", size=12, color="white", weight="bold"),
                                 ]),
-                                bgcolor="green700", border_radius=10,
+                                bgcolor="green700" if is_available else "grey400",
+                                border_radius=10,
                                 padding=ft.Padding(left=12, right=12, top=6, bottom=6),
-                                on_click=lambda e, s=l["seller"]: show_chat(s, email),
-                                ink=True,
+                                on_click=(lambda e, s=l["seller"]: show_chat(s, email, "buyer"))
+                                    if is_available else None,
+                                ink=is_available,
                             ),
                         ],
                     ),
@@ -1985,50 +2040,245 @@ def main(page: ft.Page):
                     color=ft.Colors.with_opacity(0.06, "green900")),
             )
 
-        switch([
-            appbar("Marketplace", lambda e: show_home(email)),
-            ft.Container(
-                expand=True, bgcolor="#f0f7f0",
-                padding=ft.Padding(left=16, right=16, top=16, bottom=20),
-                content=ft.Column(
-                    scroll=ft.ScrollMode.AUTO, spacing=0,
-                    controls=[
-                        # Header banner
-                        ft.Container(
-                            content=ft.Column(spacing=6, controls=[
-                                ft.Row(spacing=10, controls=[
-                                    ft.Icon(ft.Icons.STOREFRONT, color="white", size=28),
-                                    ft.Column(spacing=2, controls=[
-                                        ft.Text("Marketplace", size=17, weight="bold", color="white"),
-                                        ft.Text("Buy and sell crops directly with farmers", size=11, color="#c8e6c9"),
-                                    ]),
+        def seller_listing_card(l):
+            is_available = l["status"] == "Available"
+            return ft.Container(
+                content=ft.Column(spacing=10, controls=[
+                    ft.Row(
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                        controls=[
+                            ft.Row(spacing=10, controls=[
+                                ft.Container(
+                                    content=ft.Icon(ft.Icons.GRASS, color="white", size=20),
+                                    bgcolor="green700", border_radius=12, padding=10,
+                                ),
+                                ft.Column(spacing=2, controls=[
+                                    ft.Text(l["crop"], size=14, weight="bold", color="green900"),
+                                    ft.Text(f"{l['qty']}  ·  {l['price']}",
+                                        size=12, color="grey600"),
                                 ]),
                             ]),
-                            bgcolor="green700", border_radius=16, padding=16,
-                            margin=ft.Margin(left=0, right=0, top=0, bottom=14),
-                        ),
-                        ft.Row(
+                            ft.Container(
+                                content=ft.Text(l["status"], size=10,
+                                    color="white", weight="bold"),
+                                bgcolor="green600" if is_available else "grey400",
+                                border_radius=8,
+                                padding=ft.Padding(left=8, right=8, top=4, bottom=4),
+                            ),
+                        ],
+                    ),
+                    ft.Row(
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                        controls=[
+                            ft.Row(spacing=6, controls=[
+                                ft.Icon(ft.Icons.CHAT_BUBBLE_OUTLINE,
+                                    color="green700", size=14),
+                                ft.Text(f"{l['inquiries']} inquiries",
+                                    size=12, color="green700", weight="bold"),
+                            ]),
+                            ft.Row(spacing=8, controls=[
+                                ft.Container(
+                                    content=ft.Text("Edit", size=11,
+                                        color="green700", weight="bold"),
+                                    border=ft.border.all(1, "green700"),
+                                    border_radius=8,
+                                    padding=ft.Padding(left=12, right=12, top=5, bottom=5),
+                                    on_click=lambda e: None, ink=True,
+                                    # BACKEND PLACEHOLDER: Open edit listing screen
+                                ),
+                                ft.Container(
+                                    content=ft.Text(
+                                        "Mark Sold" if is_available else "Relist",
+                                        size=11, color="white", weight="bold"),
+                                    bgcolor="green700" if is_available else "orange700",
+                                    border_radius=8,
+                                    padding=ft.Padding(left=12, right=12, top=5, bottom=5),
+                                    on_click=lambda e: None, ink=True,
+                                    # BACKEND PLACEHOLDER: UPDATE listing status in Supabase
+                                ),
+                            ]),
+                        ],
+                    ),
+                ]),
+                bgcolor="white", border_radius=16, padding=14,
+                margin=ft.Margin(left=0, right=0, top=0, bottom=10),
+                shadow=ft.BoxShadow(spread_radius=1, blur_radius=6,
+                    color=ft.Colors.with_opacity(0.06, "green900")),
+            )
+
+        # Tab toggle
+        def tab_toggle(label, tab_id):
+            is_active = active_tab == tab_id
+            return ft.Container(
+                content=ft.Text(label, size=13, weight="bold",
+                    color="white" if is_active else "green700"),
+                bgcolor="green700" if is_active else "white",
+                border_radius=12,
+                padding=ft.Padding(left=0, right=0, top=10, bottom=10),
+                expand=True,
+                alignment=ft.Alignment(0, 0),
+                on_click=lambda e, t=tab_id: show_marketplace(email, t),
+                ink=True,
+            )
+
+        buyer_content = ft.Column(
+            scroll=ft.ScrollMode.AUTO, spacing=0,
+            controls=[
+                ft.Container(
+                    content=ft.Row(spacing=6, controls=[
+                        ft.Icon(ft.Icons.SEARCH, color="green700", size=18),
+                        ft.Text("Browse listings and contact farmers directly",
+                            size=12, color="grey600"),
+                    ]),
+                    bgcolor="#e8f5e9", border_radius=12,
+                    padding=ft.Padding(left=12, right=12, top=10, bottom=10),
+                    margin=ft.Margin(left=0, right=0, top=0, bottom=12),
+                ),
+                ft.Row(
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    controls=[
+                        ft.Text(f"{len(listings)} listings available",
+                            size=13, color="grey500"),
+                        ft.Row(spacing=4, controls=[
+                            ft.Icon(ft.Icons.FILTER_LIST, color="green700", size=16),
+                            ft.Text("Filter", size=12, color="green700"),
+                        ]),
+                    ],
+                ),
+                ft.Container(height=10),
+                *[buyer_listing_card(l) for l in listings],
+                ft.Container(height=70),
+            ],
+        )
+
+        seller_content = ft.Column(
+            scroll=ft.ScrollMode.AUTO, spacing=0,
+            controls=[
+                ft.Container(
+                    content=ft.Row(
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                        controls=[
+                            ft.Column(spacing=2, controls=[
+                                ft.Text("Your Listings", size=14,
+                                    weight="bold", color="green900"),
+                                ft.Text(f"{len(my_listings)} active listings",
+                                    size=11, color="grey500"),
+                            ]),
+                            ft.Container(
+                                content=ft.Row(spacing=6, controls=[
+                                    ft.Icon(ft.Icons.ADD, color="white", size=16),
+                                    ft.Text("New Listing", size=12,
+                                        color="white", weight="bold"),
+                                ]),
+                                bgcolor="green700", border_radius=10,
+                                padding=ft.Padding(left=12, right=12, top=8, bottom=8),
+                                on_click=lambda e: show_list_crop(email), ink=True,
+                            ),
+                        ],
+                    ),
+                    margin=ft.Margin(left=0, right=0, top=0, bottom=12),
+                ),
+                *[seller_listing_card(l) for l in my_listings],
+                ft.Container(height=14),
+                # Inquiries section
+                ft.Text("Recent Inquiries", size=13, color="grey500", weight="bold"),
+                ft.Container(height=8),
+                *[
+                    ft.Container(
+                        content=ft.Row(
                             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                             vertical_alignment=ft.CrossAxisAlignment.CENTER,
                             controls=[
-                                ft.Text("Available Listings", size=15,
-                                    weight="bold", color="green900"),
-                                ft.Container(
-                                    content=ft.Row(spacing=6, controls=[
-                                        ft.Icon(ft.Icons.ADD, color="white", size=16),
-                                        ft.Text("List Crop", size=12, color="white", weight="bold"),
+                                ft.Row(spacing=10, controls=[
+                                    ft.Container(
+                                        content=ft.Text(inq["buyer"][0], size=13,
+                                            color="white", weight="bold"),
+                                        bgcolor="green700", border_radius=16,
+                                        width=32, height=32,
+                                        alignment=ft.Alignment(0, 0),
+                                    ),
+                                    ft.Column(spacing=2, controls=[
+                                        ft.Text(inq["buyer"], size=13,
+                                            weight="bold", color="green900"),
+                                        ft.Text(f"Re: {inq['crop']} · {inq['time']}",
+                                            size=11, color="grey500"),
                                     ]),
-                                    bgcolor="green700", border_radius=10,
-                                    padding=ft.Padding(left=12, right=12, top=6, bottom=6),
-                                    on_click=lambda e: None, ink=True,
+                                ]),
+                                ft.Container(
+                                    content=ft.Text("Reply", size=11,
+                                        color="white", weight="bold"),
+                                    bgcolor="green700", border_radius=8,
+                                    padding=ft.Padding(left=12, right=12, top=5, bottom=5),
+                                    on_click=lambda e, b=inq["buyer"]: show_chat(b, email, "seller"),
+                                    ink=True,
                                 ),
                             ],
                         ),
-                        ft.Container(height=10),
-                        *[listing_card(l) for l in listings],
+                        bgcolor="white", border_radius=14, padding=12,
+                        margin=ft.Margin(left=0, right=0, top=0, bottom=8),
+                        shadow=ft.BoxShadow(spread_radius=1, blur_radius=6,
+                            color=ft.Colors.with_opacity(0.06, "green900")),
+                    )
+                    for inq in [
+                        {"buyer": "Kwame A.", "crop": "Maize",  "time": "2h ago"},
+                        {"buyer": "Sarah M.", "crop": "Maize",  "time": "5h ago"},
+                        {"buyer": "Ali H.",   "crop": "Rice",   "time": "1d ago"},
+                    ]
+                ],
+                ft.Container(height=70),
+            ],
+        )
+
+        switch([
+            appbar("Marketplace"),
+            ft.Container(
+                expand=True, bgcolor="#f0f7f0",
+                content=ft.Column(
+                    spacing=0,
+                    controls=[
+                        # Header banner
+                        ft.Container(
+                            content=ft.Row(spacing=12, controls=[
+                                ft.Icon(ft.Icons.STOREFRONT, color="white", size=26),
+                                ft.Column(spacing=2, controls=[
+                                    ft.Text("Marketplace", size=17,
+                                        weight="bold", color="white"),
+                                    ft.Text("Buy and sell crops directly",
+                                        size=11, color="#c8e6c9"),
+                                ]),
+                            ]),
+                            bgcolor="green700", border_radius=0,
+                            padding=ft.Padding(left=16, right=16, top=12, bottom=12),
+                        ),
+
+                        # Buyer / Seller tab toggle
+                        ft.Container(
+                            content=ft.Row(spacing=0, controls=[
+                                tab_toggle("Buyer", "buyer"),
+                                tab_toggle("Seller", "seller"),
+                            ]),
+                            bgcolor="white",
+                            border=ft.border.all(1, "green100"),
+                            border_radius=14,
+                            margin=ft.Padding(left=16, right=16, top=12, bottom=12),
+                            padding=4,
+                            shadow=ft.BoxShadow(spread_radius=1, blur_radius=6,
+                                color=ft.Colors.with_opacity(0.06, "green900")),
+                        ),
+
+                        # Tab content
+                        ft.Container(
+                            expand=True,
+                            padding=ft.Padding(left=16, right=16, top=0, bottom=0),
+                            content=buyer_content if active_tab == "buyer" else seller_content,
+                        ),
                     ],
                 ),
             ),
+            nav_bar("Market", email),
         ])
 
     # ──────────────────────────────────────────────────────
@@ -2158,6 +2408,735 @@ def main(page: ft.Page):
                     ],
                 ),
             ),
+        ])
+
+    # ──────────────────────────────────────────────────────
+    # SOIL pH ESTIMATOR SCREEN
+    # ──────────────────────────────────────────────────────
+    def show_ph_estimator(email=""):
+        # BACKEND PLACEHOLDER: Replace lat/lon with page.get_location() result
+        # BACKEND PLACEHOLDER: Call ISRIC SoilGrids API:
+        #   GET https://rest.isric.org/soilgrids/v2.0/properties/query
+        #       ?lon={lon}&lat={lat}&property=phh2o&depth=0-5cm&depth=5-15cm
+        # BACKEND PLACEHOLDER: Parse response and populate ph_value, suitability, advice
+
+        selected_crop = {"value": "Maize"}
+        ph_result     = {"value": None}
+
+        crops = ["Maize", "Wheat", "Rice", "Soybean", "Cotton", "Tomato", "Cassava", "Sorghum"]
+
+        # Optimal pH ranges per crop (used for suitability logic)
+        ph_ranges = {
+            "Maize":   (5.8, 7.0), "Wheat":   (6.0, 7.5),
+            "Rice":    (5.5, 6.5), "Soybean": (6.0, 7.0),
+            "Cotton":  (5.8, 8.0), "Tomato":  (5.5, 7.0),
+            "Cassava": (5.0, 6.5), "Sorghum": (5.5, 7.5),
+        }
+
+        ph_display   = ft.Text("--", size=48, weight="bold", color="green800")
+        ph_label     = ft.Text("Tap 'Estimate pH' to analyse your location",
+                           size=13, color="grey500", text_align=ft.TextAlign.CENTER)
+        suit_badge   = ft.Container(visible=False)
+        advice_col   = ft.Column(visible=False, spacing=8)
+
+        lat_field = ft.TextField(
+            label="Latitude",  hint_text="e.g. 6.5244",
+            prefix_icon=ft.Icons.MY_LOCATION,
+            width=148, border_radius=12, border_color="green700",
+            focused_border_color="green900", bgcolor="white",
+            keyboard_type=ft.KeyboardType.NUMBER,
+        )
+        lon_field = ft.TextField(
+            label="Longitude", hint_text="e.g. 3.3792",
+            prefix_icon=ft.Icons.EXPLORE,
+            width=148, border_radius=12, border_color="green700",
+            focused_border_color="green900", bgcolor="white",
+            keyboard_type=ft.KeyboardType.NUMBER,
+        )
+
+        def make_crop_chip(c):
+            is_sel = c == selected_crop["value"]
+            def on_tap(e, crop=c):
+                selected_crop["value"] = crop
+                show_ph_estimator(email)
+            return ft.Container(
+                content=ft.Text(c, size=12,
+                    color="white" if is_sel else "green700", weight="bold" if is_sel else "normal"),
+                bgcolor="green700" if is_sel else "white",
+                border_radius=20,
+                padding=ft.Padding(left=14, right=14, top=7, bottom=7),
+                on_click=on_tap, ink=True,
+                shadow=ft.BoxShadow(spread_radius=1, blur_radius=4,
+                    color=ft.Colors.with_opacity(0.08, "green900")),
+            )
+
+        def on_estimate(e):
+            # BACKEND PLACEHOLDER: Replace this block with real ISRIC API call
+            # For now simulate a result using placeholder value
+            if not lat_field.value or not lon_field.value:
+                ph_label.value  = "Please enter your coordinates first"
+                ph_label.color  = "red"
+                page.update()
+                return
+
+            # Placeholder simulated pH value — replace with API response
+            simulated_ph = 6.2
+            ph_result["value"] = simulated_ph
+            ph_display.value = str(simulated_ph)
+
+            lo, hi = ph_ranges.get(selected_crop["value"], (6.0, 7.0))
+            if lo <= simulated_ph <= hi:
+                suit_color, suit_text, suit_icon = "green600", "Suitable", ft.Icons.CHECK_CIRCLE
+                advice_text = (
+                    f"Your soil pH of {simulated_ph} is within the optimal range "
+                    f"({lo}–{hi}) for {selected_crop['value']}. "
+                    f"No corrective action needed. Proceed with standard fertilizer recommendations."
+                )
+            elif simulated_ph < lo:
+                suit_color, suit_text, suit_icon = "orange700", "Too Acidic", ft.Icons.WARNING_ROUNDED
+                advice_text = (
+                    f"Your soil pH of {simulated_ph} is below the optimal range "
+                    f"({lo}–{hi}) for {selected_crop['value']}. "
+                    f"Apply agricultural lime (calcium carbonate) to raise pH. "
+                    f"Recommended: 1–2 tonnes/ha depending on soil texture."
+                )
+            else:
+                suit_color, suit_text, suit_icon = "blue700", "Too Alkaline", ft.Icons.INFO_ROUNDED
+                advice_text = (
+                    f"Your soil pH of {simulated_ph} is above the optimal range "
+                    f"({lo}–{hi}) for {selected_crop['value']}. "
+                    f"Apply elemental sulfur to lower pH gradually. "
+                    f"Recommended: 0.5–1 tonne/ha. Retest after 3 months."
+                )
+
+            ph_display.color = suit_color
+            ph_label.value   = f"Soil pH at your location for {selected_crop['value']}"
+            ph_label.color   = "grey600"
+
+            suit_badge.content = ft.Row(spacing=8, controls=[
+                ft.Icon(suit_icon, color="white", size=16),
+                ft.Text(suit_text, size=13, color="white", weight="bold"),
+            ])
+            suit_badge.bgcolor  = suit_color
+            suit_badge.border_radius = 12
+            suit_badge.padding  = ft.Padding(left=14, right=14, top=8, bottom=8)
+            suit_badge.visible  = True
+
+            advice_col.controls = [
+                ft.Text("AI Recommendation", size=14, weight="bold", color="green900"),
+                ft.Divider(color="green100"),
+                ft.Text(advice_text, size=13, color="grey700"),
+                ft.Container(height=4),
+                # BACKEND PLACEHOLDER: Depth breakdown from SoilGrids
+                ft.Row(spacing=0, controls=[
+                    ft.Container(
+                        content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                            spacing=3, controls=[
+                                ft.Text("0–5 cm", size=10, color="grey500"),
+                                ft.Text(str(simulated_ph), size=16,
+                                    weight="bold", color=suit_color),
+                            ]),
+                        expand=True, bgcolor="#f9f9f9", border_radius=10, padding=10,
+                    ),
+                    ft.Container(width=8),
+                    ft.Container(
+                        content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                            spacing=3, controls=[
+                                ft.Text("5–15 cm", size=10, color="grey500"),
+                                ft.Text("--", size=16, weight="bold", color="grey400"),
+                            ]),
+                        expand=True, bgcolor="#f9f9f9", border_radius=10, padding=10,
+                    ),
+                    ft.Container(width=8),
+                    ft.Container(
+                        content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                            spacing=3, controls=[
+                                ft.Text("15–30 cm", size=10, color="grey500"),
+                                ft.Text("--", size=16, weight="bold", color="grey400"),
+                            ]),
+                        expand=True, bgcolor="#f9f9f9", border_radius=10, padding=10,
+                    ),
+                ]),
+            ]
+            advice_col.visible = True
+            page.update()
+
+        switch([
+            appbar("Soil pH Estimator", lambda e: show_home(email)),
+            ft.Container(
+                expand=True, bgcolor="#f0f7f0",
+                padding=ft.Padding(left=16, right=16, top=16, bottom=24),
+                content=ft.Column(
+                    scroll=ft.ScrollMode.AUTO, spacing=16,
+                    controls=[
+
+                        # Map placeholder
+                        ft.Container(
+                            content=ft.Column(
+                                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                                alignment=ft.MainAxisAlignment.CENTER,
+                                spacing=10,
+                                controls=[
+                                    ft.Icon(ft.Icons.MAP, color="green700", size=48),
+                                    ft.Text("Interactive Map", size=15,
+                                        weight="bold", color="green900"),
+                                    ft.Text(
+                                        "Tap your farm location on the map\nto auto-fill coordinates",
+                                        size=12, color="grey500",
+                                        text_align=ft.TextAlign.CENTER,
+                                    ),
+                                    # BACKEND PLACEHOLDER: Replace with flet_map or
+                                    # WebView + Leaflet.js showing OpenStreetMap tiles
+                                    # with soil pH colour overlay from SoilGrids WMS
+                                    ft.Container(
+                                        content=ft.Text(
+                                            "[ Map loads here — OpenStreetMap + SoilGrids overlay ]",
+                                            size=11, color="grey400",
+                                            text_align=ft.TextAlign.CENTER,
+                                        ),
+                                        bgcolor="#e8f5e9", border_radius=10,
+                                        padding=ft.Padding(left=16, right=16, top=10, bottom=10),
+                                    ),
+                                ],
+                            ),
+                            bgcolor="white", border_radius=20, padding=20, height=200,
+                            shadow=ft.BoxShadow(spread_radius=1, blur_radius=10,
+                                color=ft.Colors.with_opacity(0.08, "green900")),
+                        ),
+
+                        # Coordinate entry
+                        card(ft.Column(spacing=14, controls=[
+                            ft.Text("Enter Coordinates", size=14,
+                                weight="bold", color="green900"),
+                            ft.Row(spacing=8, controls=[lat_field, lon_field]),
+                            ft.Container(
+                                content=ft.Row(spacing=8, controls=[
+                                    ft.Icon(ft.Icons.MY_LOCATION, color="white", size=16),
+                                    ft.Text("Use My Location", size=13,
+                                        color="white", weight="bold"),
+                                ], alignment=ft.MainAxisAlignment.CENTER),
+                                bgcolor="green700", border_radius=12,
+                                padding=ft.Padding(left=16, right=16, top=10, bottom=10),
+                                on_click=lambda e: None, ink=True,
+                                # BACKEND PLACEHOLDER: Call page.get_location()
+                                # and populate lat_field/lon_field
+                            ),
+                        ])),
+
+                        # Crop selector
+                        card(ft.Column(spacing=12, controls=[
+                            ft.Text("Select Your Crop", size=14,
+                                weight="bold", color="green900"),
+                            ft.Row(wrap=True, spacing=8,
+                                controls=[make_crop_chip(c) for c in crops]),
+                        ])),
+
+                        # Estimate button
+                        green_btn("Estimate Soil pH", on_estimate, width=340),
+
+                        # pH result
+                        card(ft.Column(
+                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                            spacing=10,
+                            controls=[
+                                ft.Text("Soil pH", size=13, color="grey500"),
+                                ph_display,
+                                ph_label,
+                                suit_badge,
+                            ],
+                        )),
+
+                        # Advice card
+                        card(advice_col),
+                    ],
+                ),
+            ),
+        ])
+
+    # ──────────────────────────────────────────────────────
+    # NEW FORUM POST SCREEN
+    # ──────────────────────────────────────────────────────
+    def show_new_post(crop_name, email=""):
+        # BACKEND PLACEHOLDER: On submit, INSERT into Supabase `forum_posts` table:
+        #   { user_id, crop_channel, text, photo_url (if attached), created_at }
+        # BACKEND PLACEHOLDER: Check today's photo count for user before allowing upload
+        #   SELECT count(*) FROM forum_posts WHERE user_id=? AND DATE(created_at)=today
+        #   AND photo_url IS NOT NULL
+
+        photos_today  = {"count": 0}  # BACKEND PLACEHOLDER: fetch from Supabase
+        attached_photo = {"path": None}
+
+        post_field = ft.TextField(
+            label=f"Share something with #{crop_name.lower()}-farmers...",
+            multiline=True, min_lines=4, max_lines=8,
+            border_radius=15, border_color="green700",
+            focused_border_color="green900", bgcolor="white",
+        )
+        photo_status = ft.Text("", size=12, color="green600")
+        status_msg   = ft.Text("", size=13, color="red", text_align=ft.TextAlign.CENTER)
+
+        def on_attach_photo(e):
+            if photos_today["count"] >= 2:
+                photo_status.value = "Daily photo limit reached (2/2)"
+                photo_status.color = "red"
+                page.update()
+                return
+            # BACKEND PLACEHOLDER: Open native camera via platform channel
+            # Image must be native iOS/Android camera format — enforce MIME type check
+            # on upload: only image/jpeg and image/heic accepted
+            attached_photo["path"] = "camera_photo_placeholder.jpg"
+            photos_today["count"] += 1
+            remaining = 2 - photos_today["count"]
+            photo_status.value = f"Photo attached  ({remaining} photo{'s' if remaining != 1 else ''} remaining today)"
+            photo_status.color = "green600"
+            page.update()
+
+        def on_submit(e):
+            if not post_field.value or not post_field.value.strip():
+                status_msg.value = "Please write something before posting"
+                page.update()
+                return
+            # BACKEND PLACEHOLDER: Upload photo to Supabase Storage if attached
+            # BACKEND PLACEHOLDER: INSERT post to forum_posts table
+            # BACKEND PLACEHOLDER: Navigate back and refresh channel feed
+            status_msg.value = "Post published!"
+            status_msg.color = "green700"
+            page.update()
+
+        switch([
+            appbar(f"New Post · #{crop_name.lower()}-farmers",
+                lambda e: show_forum_channel(crop_name, email)),
+            ft.Container(
+                expand=True, bgcolor="#f0f7f0",
+                padding=ft.Padding(left=16, right=16, top=20, bottom=24),
+                content=ft.Column(
+                    scroll=ft.ScrollMode.AUTO, spacing=16,
+                    controls=[
+
+                        # User header
+                        ft.Row(spacing=12, controls=[
+                            ft.Container(
+                                content=ft.Text(
+                                    email[0].upper() if email else "F",
+                                    size=16, color="white", weight="bold"),
+                                bgcolor="green700", border_radius=20,
+                                width=40, height=40, alignment=ft.Alignment(0, 0),
+                            ),
+                            ft.Column(spacing=2, controls=[
+                                ft.Text(
+                                    email.split("@")[0].capitalize() if email else "Farmer",
+                                    size=14, weight="bold", color="green900"),
+                                ft.Row(spacing=4, controls=[
+                                    ft.Icon(ft.Icons.LOCK_OPEN, color="green600", size=12),
+                                    ft.Text(f"Posting to #{crop_name.lower()}-farmers",
+                                        size=11, color="green600"),
+                                ]),
+                            ]),
+                        ]),
+
+                        # Post text field
+                        card(ft.Column(spacing=10, controls=[
+                            post_field,
+                            ft.Divider(color="green100"),
+                            ft.Row(
+                                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                                controls=[
+                                    ft.Container(
+                                        content=ft.Row(spacing=8, controls=[
+                                            ft.Icon(ft.Icons.ADD_PHOTO_ALTERNATE_OUTLINED,
+                                                color="green700", size=20),
+                                            ft.Text("Attach Photo", size=13,
+                                                color="green700"),
+                                        ]),
+                                        on_click=on_attach_photo, ink=True,
+                                        border_radius=8,
+                                        padding=ft.Padding(left=8, right=8, top=6, bottom=6),
+                                    ),
+                                    ft.Text(
+                                        f"{2 - photos_today['count']}/2 photos left today",
+                                        size=11, color="grey400"),
+                                ],
+                            ),
+                            photo_status,
+                        ])),
+
+                        # Rules card
+                        ft.Container(
+                            content=ft.Column(spacing=6, controls=[
+                                ft.Row(spacing=6, controls=[
+                                    ft.Icon(ft.Icons.INFO_OUTLINE,
+                                        color="green700", size=15),
+                                    ft.Text("Posting Rules", size=12,
+                                        weight="bold", color="green900"),
+                                ]),
+                                ft.Text(
+                                    "• Maximum 2 photos per day\n"
+                                    "• Photos must be taken from your device camera\n"
+                                    "• Screenshots and downloaded images are rejected\n"
+                                    "• Keep posts relevant to your crop channel",
+                                    size=11, color="grey600",
+                                ),
+                            ]),
+                            bgcolor="#e8f5e9", border_radius=14, padding=14,
+                        ),
+
+                        green_btn("Publish Post", on_submit, width=340),
+                        status_msg,
+                    ],
+                ),
+            ),
+        ])
+
+    # ──────────────────────────────────────────────────────
+    # LIST YOUR CROP SCREEN
+    # ──────────────────────────────────────────────────────
+    def show_list_crop(email=""):
+        # BACKEND PLACEHOLDER: On submit, INSERT into Supabase `marketplace_listings` table:
+        #   { user_id, crop, quantity_kg, price_per_kg, location, description,
+        #     contact_number, verified (false by default), created_at }
+        # BACKEND PLACEHOLDER: After insert, navigate back to marketplace and refresh listings
+
+        crop_field = ft.TextField(
+            label="Crop Name", hint_text="e.g. Maize, Rice, Wheat",
+            prefix_icon=ft.Icons.GRASS,
+            border_radius=15, border_color="green700",
+            focused_border_color="green900", bgcolor="white",
+        )
+        qty_field = ft.TextField(
+            label="Quantity Available (kg)", hint_text="e.g. 500",
+            prefix_icon=ft.Icons.SCALE,
+            border_radius=15, border_color="green700",
+            focused_border_color="green900", bgcolor="white",
+            keyboard_type=ft.KeyboardType.NUMBER,
+        )
+        price_field = ft.TextField(
+            label="Price per kg (USD)", hint_text="e.g. 0.25",
+            prefix_icon=ft.Icons.ATTACH_MONEY,
+            border_radius=15, border_color="green700",
+            focused_border_color="green900", bgcolor="white",
+            keyboard_type=ft.KeyboardType.NUMBER,
+        )
+        location_field = ft.TextField(
+            label="Your Location", hint_text="e.g. Accra, Ghana",
+            prefix_icon=ft.Icons.LOCATION_ON_OUTLINED,
+            border_radius=15, border_color="green700",
+            focused_border_color="green900", bgcolor="white",
+        )
+        phone_field = ft.TextField(
+            label="Contact Number", hint_text="e.g. +234 800 000 0000",
+            prefix_icon=ft.Icons.PHONE_OUTLINED,
+            border_radius=15, border_color="green700",
+            focused_border_color="green900", bgcolor="white",
+            keyboard_type=ft.KeyboardType.PHONE,
+        )
+        desc_field = ft.TextField(
+            label="Description (optional)",
+            hint_text="Harvested recently, good quality...",
+            multiline=True, min_lines=3, max_lines=5,
+            border_radius=15, border_color="green700",
+            focused_border_color="green900", bgcolor="white",
+        )
+        status_msg = ft.Text("", size=13, text_align=ft.TextAlign.CENTER)
+
+        def on_submit(e):
+            if not crop_field.value or not qty_field.value or \
+               not price_field.value or not location_field.value or \
+               not phone_field.value:
+                status_msg.value  = "Please fill in all required fields"
+                status_msg.color  = "red"
+                page.update()
+                return
+            # BACKEND PLACEHOLDER: Validate price and qty are valid numbers
+            # BACKEND PLACEHOLDER: INSERT listing to Supabase marketplace_listings table
+            # BACKEND PLACEHOLDER: Navigate back to marketplace
+            status_msg.value = "Listing published successfully!"
+            status_msg.color = "green700"
+            page.update()
+
+        switch([
+            appbar("List Your Crop", lambda e: show_marketplace(email)),
+            ft.Container(
+                expand=True, bgcolor="#f0f7f0",
+                padding=ft.Padding(left=16, right=16, top=20, bottom=24),
+                content=ft.Column(
+                    scroll=ft.ScrollMode.AUTO, spacing=16,
+                    controls=[
+
+                        # Header
+                        ft.Container(
+                            content=ft.Row(spacing=12, controls=[
+                                ft.Container(
+                                    content=ft.Icon(ft.Icons.STOREFRONT,
+                                        color="white", size=26),
+                                    bgcolor="green700", border_radius=14, padding=12,
+                                ),
+                                ft.Column(spacing=2, controls=[
+                                    ft.Text("New Listing", size=16,
+                                        weight="bold", color="green900"),
+                                    ft.Text("Buyers will be able to contact you directly",
+                                        size=11, color="grey500"),
+                                ]),
+                            ]),
+                            bgcolor="white", border_radius=16, padding=14,
+                            shadow=ft.BoxShadow(spread_radius=1, blur_radius=8,
+                                color=ft.Colors.with_opacity(0.06, "green900")),
+                        ),
+
+                        # Form
+                        card(ft.Column(spacing=14, controls=[
+                            ft.Text("Crop Details", size=14,
+                                weight="bold", color="green900"),
+                            ft.Divider(color="green100"),
+                            crop_field, qty_field, price_field,
+                        ])),
+
+                        card(ft.Column(spacing=14, controls=[
+                            ft.Text("Contact & Location", size=14,
+                                weight="bold", color="green900"),
+                            ft.Divider(color="green100"),
+                            location_field, phone_field,
+                        ])),
+
+                        card(ft.Column(spacing=14, controls=[
+                            ft.Text("Additional Info", size=14,
+                                weight="bold", color="green900"),
+                            ft.Divider(color="green100"),
+                            desc_field,
+                        ])),
+
+                        green_btn("Publish Listing", on_submit, width=340),
+                        status_msg,
+                        ft.Container(height=10),
+                    ],
+                ),
+            ),
+        ])
+
+    # ──────────────────────────────────────────────────────
+    # PROFILE PAGE (full page — not just sidebar menu)
+    # ──────────────────────────────────────────────────────
+    def show_profile(email=""):
+        # BACKEND PLACEHOLDER: Fetch user profile from Supabase `users` table:
+        #   SELECT full_name, avatar_url, location, region, created_at FROM users
+        #   WHERE id = current_user_id
+        # BACKEND PLACEHOLDER: Fetch user's analysis count:
+        #   SELECT count(*) FROM analyses WHERE user_id = current_user_id
+        # BACKEND PLACEHOLDER: Fetch user's forum post count:
+        #   SELECT count(*) FROM forum_posts WHERE user_id = current_user_id
+        # BACKEND PLACEHOLDER: Fetch user's active marketplace listings:
+        #   SELECT count(*) FROM marketplace_listings WHERE user_id = current_user_id
+
+        username  = email.split("@")[0].capitalize() if email else "Farmer"
+        user_email = email or "farmer@soilco.app"
+
+        def stat_box(value, label):
+            return ft.Container(
+                content=ft.Column(
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    spacing=3,
+                    controls=[
+                        ft.Text(value, size=22, weight="bold", color="green800"),
+                        ft.Text(label, size=10, color="grey500"),
+                    ],
+                ),
+                expand=True, bgcolor="white", border_radius=14, padding=14,
+                shadow=ft.BoxShadow(spread_radius=1, blur_radius=6,
+                    color=ft.Colors.with_opacity(0.06, "green900")),
+            )
+
+        def setting_row(icon, label, on_tap):
+            return ft.Container(
+                content=ft.Row(spacing=16, controls=[
+                    ft.Icon(icon, color="green700", size=20),
+                    ft.Text(label, size=14, color="grey900", expand=True),
+                    ft.Icon(ft.Icons.ARROW_FORWARD_IOS, color="grey300", size=13),
+                ]),
+                padding=ft.Padding(left=16, right=16, top=14, bottom=14),
+                on_click=on_tap, ink=True,
+            )
+
+        switch([
+            appbar("Profile", actions=[
+                ft.IconButton(
+                    icon=ft.Icons.EDIT_OUTLINED, icon_color="white",
+                    on_click=lambda e: show_edit_profile(email),
+                    tooltip="Edit Profile",
+                )
+            ]),
+            ft.Container(
+                expand=True, bgcolor="#f0f7f0",
+                content=ft.Column(
+                    scroll=ft.ScrollMode.AUTO, spacing=0,
+                    controls=[
+
+                        # Profile hero
+                        ft.Container(
+                            content=ft.Column(
+                                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                                spacing=10,
+                                controls=[
+                                    ft.Stack(controls=[
+                                        ft.Container(
+                                            content=ft.Icon(ft.Icons.PERSON,
+                                                color="white", size=52),
+                                            bgcolor="green700", border_radius=50,
+                                            width=100, height=100,
+                                            alignment=ft.Alignment(0, 0),
+                                            # BACKEND PLACEHOLDER: Replace with
+                                            # ft.Image(src=avatar_url) when Supabase
+                                            # Storage is connected
+                                        ),
+                                        ft.Container(
+                                            content=ft.Icon(ft.Icons.CAMERA_ALT,
+                                                color="white", size=14),
+                                            bgcolor="green900", border_radius=12,
+                                            padding=5, right=0, bottom=0,
+                                            on_click=lambda e: show_profile_picture(email),
+                                            ink=True,
+                                        ),
+                                    ]),
+                                    ft.Text(username, size=20,
+                                        weight="bold", color="green900"),
+                                    ft.Text(user_email, size=12, color="grey600"),
+                                    ft.Row(spacing=6,
+                                        alignment=ft.MainAxisAlignment.CENTER,
+                                        controls=[
+                                            ft.Icon(ft.Icons.LOCATION_ON,
+                                                color="green600", size=14),
+                                            ft.Text("Location not set",
+                                                size=12, color="grey500"),
+                                            # BACKEND PLACEHOLDER: Replace with
+                                            # user.location from Supabase
+                                        ]),
+                                ],
+                            ),
+                            bgcolor="white",
+                            padding=ft.Padding(top=28, bottom=24, left=0, right=0),
+                            width=page.window.width,
+                        ),
+
+                        # Stats row
+                        ft.Container(
+                            content=ft.Row(spacing=10, controls=[
+                                stat_box("0", "Analyses"),
+                                # BACKEND PLACEHOLDER: Replace "0" with real counts
+                                stat_box("0", "Forum Posts"),
+                                stat_box("0", "Listings"),
+                            ]),
+                            padding=ft.Padding(left=16, right=16, top=14, bottom=14),
+                        ),
+
+                        # Recent activity
+                        ft.Container(
+                            content=ft.Text("Recent Activity", size=13,
+                                color="grey500", weight="bold"),
+                            padding=ft.Padding(left=16, right=0, top=4, bottom=6),
+                        ),
+                        ft.Container(
+                            content=ft.Column(spacing=0, controls=[
+                                ft.Container(
+                                    content=ft.Row(spacing=12,
+                                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                                        controls=[
+                                            ft.Container(
+                                                content=ft.Icon(ft.Icons.GRASS,
+                                                    color="white", size=16),
+                                                bgcolor="green700", border_radius=10,
+                                                padding=8,
+                                            ),
+                                            ft.Column(spacing=2, controls=[
+                                                ft.Text("Analysed Maize",
+                                                    size=13, color="green900"),
+                                                ft.Text("Feb 28 · pH 6.5 · Optimal",
+                                                    size=11, color="grey500"),
+                                                # BACKEND PLACEHOLDER: Replace with
+                                                # latest analyses from Supabase
+                                            ]),
+                                        ]),
+                                    padding=ft.Padding(left=16, right=16,
+                                        top=12, bottom=12),
+                                ),
+                                ft.Divider(color="green100", height=1),
+                                ft.Container(
+                                    content=ft.Row(spacing=12,
+                                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                                        controls=[
+                                            ft.Container(
+                                                content=ft.Icon(ft.Icons.FORUM,
+                                                    color="white", size=16),
+                                                bgcolor="green600", border_radius=10,
+                                                padding=8,
+                                            ),
+                                            ft.Column(spacing=2, controls=[
+                                                ft.Text("Posted in #rice-farmers",
+                                                    size=13, color="green900"),
+                                                ft.Text("5h ago",
+                                                    size=11, color="grey500"),
+                                            ]),
+                                        ]),
+                                    padding=ft.Padding(left=16, right=16,
+                                        top=12, bottom=12),
+                                ),
+                            ]),
+                            bgcolor="white", border_radius=16,
+                            margin=ft.Margin(left=16, right=16, top=0, bottom=14),
+                            shadow=ft.BoxShadow(spread_radius=1, blur_radius=8,
+                                color=ft.Colors.with_opacity(0.06, "green900")),
+                        ),
+
+                        # Settings
+                        ft.Container(
+                            content=ft.Text("Account Settings", size=13,
+                                color="grey500", weight="bold"),
+                            padding=ft.Padding(left=16, right=0, top=4, bottom=6),
+                        ),
+                        ft.Container(
+                            content=ft.Column(spacing=0, controls=[
+                                setting_row(ft.Icons.PERSON_OUTLINE, "Edit Profile",
+                                    lambda e: show_edit_profile(email)),
+                                ft.Divider(color="green100", height=1),
+                                setting_row(ft.Icons.IMAGE_OUTLINED, "Profile Picture",
+                                    lambda e: show_profile_picture(email)),
+                                ft.Divider(color="green100", height=1),
+                                setting_row(ft.Icons.LOCK_OUTLINE, "Change Password",
+                                    lambda e: show_change_password(email)),
+                                ft.Divider(color="green100", height=1),
+                                setting_row(ft.Icons.LOCATION_ON_OUTLINED, "Change Location",
+                                    lambda e: show_change_location(email)),
+                                ft.Divider(color="green100", height=1),
+                                setting_row(ft.Icons.NOTIFICATIONS_OUTLINED, "Notifications",
+                                    lambda e: show_notifications(email)),
+                                ft.Divider(color="green100", height=1),
+                                setting_row(ft.Icons.HELP_OUTLINE, "Help & FAQ",
+                                    lambda e: show_help_faq(email)),
+                            ]),
+                            bgcolor="white", border_radius=16,
+                            margin=ft.Margin(left=16, right=16, top=0, bottom=14),
+                            shadow=ft.BoxShadow(spread_radius=1, blur_radius=8,
+                                color=ft.Colors.with_opacity(0.06, "green900")),
+                        ),
+
+                        # Logout
+                        ft.Container(
+                            content=ft.Row(spacing=12,
+                                alignment=ft.MainAxisAlignment.CENTER,
+                                controls=[
+                                    ft.Icon(ft.Icons.LOGOUT, color="red600", size=20),
+                                    ft.Text("Logout", size=14, color="red600",
+                                        weight="bold"),
+                                ]),
+                            bgcolor="white", border_radius=16,
+                            margin=ft.Margin(left=16, right=16, top=0, bottom=80),
+                            padding=ft.Padding(left=20, right=20, top=14, bottom=14),
+                            on_click=lambda e: show_login(), ink=True,
+                            shadow=ft.BoxShadow(spread_radius=1, blur_radius=8,
+                                color=ft.Colors.with_opacity(0.06, "green900")),
+                        ),
+                    ],
+                ),
+            ),
+            nav_bar("Profile", email),
         ])
 
     # ──────────────────────────────────────────────────────
