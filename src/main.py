@@ -70,10 +70,10 @@ def main(page: ft.Page):
 
     def nav_bar(active, email):
         tabs = [
-            {"label": "Home",        "icon": ft.Icons.HOME_OUTLINED,       "icon_active": ft.Icons.HOME,           "fn": lambda e: show_home(email)},
-            {"label": "Forum",       "icon": ft.Icons.FORUM_OUTLINED,      "icon_active": ft.Icons.FORUM,          "fn": lambda e: show_forum(email)},
-            {"label": "Market",      "icon": ft.Icons.STOREFRONT_OUTLINED, "icon_active": ft.Icons.STOREFRONT,     "fn": lambda e: show_marketplace(email)},
-            {"label": "Profile",     "icon": ft.Icons.PERSON_OUTLINE,      "icon_active": ft.Icons.PERSON,         "fn": lambda e: show_profile(email)},
+            {"label": "Home",    "icon": ft.Icons.HOME_OUTLINED,       "icon_active": ft.Icons.HOME,       "fn": lambda e: show_home(email)},
+            {"label": "Forum",   "icon": ft.Icons.FORUM_OUTLINED,      "icon_active": ft.Icons.FORUM,      "fn": lambda e: show_forum(email)},
+            {"label": "Market",  "icon": ft.Icons.STOREFRONT_OUTLINED, "icon_active": ft.Icons.STOREFRONT, "fn": lambda e: show_marketplace(email)},
+            {"label": "Profile", "icon": ft.Icons.PERSON_OUTLINE,      "icon_active": ft.Icons.PERSON,     "fn": lambda e: show_profile(email)},
         ]
 
         def tab_btn(t):
@@ -144,261 +144,132 @@ def main(page: ft.Page):
     # ──────────────────────────────────────────────────────
     def show_onboarding(page_idx=0):
         slides = [
-            {
-                "icon": ft.Icons.GRASS_ROUNDED,
-                "title": "Welcome to Soilco",
-                "subtitle": "Your smart soil analysis companion for better farming decisions.",
-                "color": "green700",
-            },
-            {
-                "icon": ft.Icons.WATER_DROP,
-                "title": "Smart Irrigation",
-                "subtitle": "Get AI-powered daily irrigation recommendations based on your crop and local weather.",
-                "color": "blue700",
-            },
-            {
-                "icon": ft.Icons.AUTO_AWESOME,
-                "title": "AI Crop Analysis",
-                "subtitle": "Enter any crop and receive instant fertilizer, soil type, and growth time analysis.",
-                "color": "orange700",
-            },
+            {"icon": ft.Icons.GRASS_ROUNDED, "title": "Welcome to Soilco",
+             "subtitle": "Your smart soil analysis companion for better farming decisions.", "color": "green700"},
+            {"icon": ft.Icons.WATER_DROP, "title": "Smart Irrigation",
+             "subtitle": "Get AI-powered daily irrigation recommendations based on your crop and local weather.", "color": "blue700"},
+            {"icon": ft.Icons.AUTO_AWESOME, "title": "AI Crop Analysis",
+             "subtitle": "Enter any crop and receive instant fertilizer, soil type, and growth time analysis.", "color": "orange700"},
         ]
         s = slides[page_idx]
-        dots = ft.Row(
-            alignment=ft.MainAxisAlignment.CENTER,
-            spacing=8,
-            controls=[
-                ft.Container(
-                    width=10 if i == page_idx else 6,
-                    height=10 if i == page_idx else 6,
-                    border_radius=5,
-                    bgcolor="green700" if i == page_idx else "green200",
-                )
-                for i in range(len(slides))
-            ],
-        )
-        is_last = page_idx == len(slides) - 1
-
-        def on_next(e):
-            if is_last:
-                mark_onboarding_seen()
-                show_login()
-            else:
-                show_onboarding(page_idx + 1)
-
-        switch([
-            ft.Container(
-                expand=True, bgcolor="#f0f7f0",
-                content=ft.Column(
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    spacing=0,
-                    controls=[
-                        ft.Container(
-                            content=ft.Column(
-                                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                                alignment=ft.MainAxisAlignment.CENTER,
-                                spacing=24,
-                                controls=[
-                                    ft.Container(
-                                        content=ft.Icon(s["icon"], color="white", size=72),
-                                        bgcolor=s["color"],
-                                        border_radius=40,
-                                        padding=32,
-                                    ),
-                                    ft.Text(s["title"], size=26, weight="bold", color="green900",
-                                            text_align=ft.TextAlign.CENTER),
-                                    ft.Text(s["subtitle"], size=15, color="grey600",
-                                            text_align=ft.TextAlign.CENTER),
-                                ],
-                            ),
-                            expand=True,
-                            alignment=ft.Alignment(0, 0),
-                        ),
-                        ft.Container(
-                            content=ft.Column(
-                                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                                spacing=20,
-                                controls=[
-                                    dots,
-                                    green_btn("Get Started" if is_last else "Next", on_next, height=50),
-                                    ft.TextButton(
-                                        "Skip" if not is_last else "",
-                                        on_click=lambda e: (mark_onboarding_seen(), show_login()),
-                                        style=ft.ButtonStyle(color="grey500"),
-                                    ) if not is_last else ft.Container(height=10),
-                                ],
-                            ),
-                            padding=ft.Padding(left=30, right=30, top=0, bottom=40),
-                        ),
-                    ],
-                ),
-            )
+        dots = ft.Row(alignment=ft.MainAxisAlignment.CENTER, spacing=8, controls=[
+            ft.Container(width=10 if i==page_idx else 6, height=10 if i==page_idx else 6,
+                border_radius=5, bgcolor="green700" if i==page_idx else "green200")
+            for i in range(len(slides))
         ])
+        is_last = page_idx == len(slides) - 1
+        def on_next(e):
+            if is_last: mark_onboarding_seen(); show_login()
+            else: show_onboarding(page_idx + 1)
+        switch([ft.Container(expand=True, bgcolor="#f0f7f0", content=ft.Column(
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER, alignment=ft.MainAxisAlignment.CENTER, spacing=0,
+            controls=[
+                ft.Container(expand=True, alignment=ft.Alignment(0,0), content=ft.Column(
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER, alignment=ft.MainAxisAlignment.CENTER, spacing=24,
+                    controls=[
+                        ft.Container(content=ft.Icon(s["icon"], color="white", size=72), bgcolor=s["color"], border_radius=40, padding=32),
+                        ft.Text(s["title"], size=26, weight="bold", color="green900", text_align=ft.TextAlign.CENTER),
+                        ft.Text(s["subtitle"], size=15, color="grey600", text_align=ft.TextAlign.CENTER),
+                    ])),
+                ft.Container(padding=ft.Padding(left=30, right=30, top=0, bottom=40), content=ft.Column(
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=20,
+                    controls=[
+                        dots,
+                        green_btn("Get Started" if is_last else "Next", on_next, height=50),
+                        ft.TextButton("Skip", on_click=lambda e: (mark_onboarding_seen(), show_login()),
+                            style=ft.ButtonStyle(color="grey500")) if not is_last else ft.Container(height=10),
+                    ])),
+            ])) ])
 
     # ──────────────────────────────────────────────────────
     # LOGIN SCREEN
     # ──────────────────────────────────────────────────────
     def show_login():
-        email_field = ft.TextField(
-            label="Email", prefix_icon=ft.Icons.EMAIL_OUTLINED,
-            width=300, border_radius=15, border_color="green700",
-            focused_border_color="green900", keyboard_type=ft.KeyboardType.EMAIL, bgcolor="white",
-        )
-        password_field = ft.TextField(
-            label="Password", prefix_icon=ft.Icons.LOCK_OUTLINE,
+        email_field = ft.TextField(label="Email", prefix_icon=ft.Icons.EMAIL_OUTLINED, width=300,
+            border_radius=15, border_color="green700", focused_border_color="green900",
+            keyboard_type=ft.KeyboardType.EMAIL, bgcolor="white")
+        password_field = ft.TextField(label="Password", prefix_icon=ft.Icons.LOCK_OUTLINE,
             password=True, can_reveal_password=True, width=300,
-            border_radius=15, border_color="green700", focused_border_color="green900", bgcolor="white",
-        )
+            border_radius=15, border_color="green700", focused_border_color="green900", bgcolor="white")
         status = ft.Text("", size=14)
-
         def on_login(e):
             if not email_field.value or not password_field.value:
-                status.value = "Please fill in all fields"
-                status.color = "red"
-                page.update()
-            else:
-                show_home(email_field.value)
-
-        switch([
-            ft.Container(
-                expand=True, bgcolor="#f0f7f0",
-                content=ft.Column(
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    scroll=ft.ScrollMode.AUTO, spacing=0,
-                    controls=[
-                        ft.Container(content=logo(50), padding=ft.Padding(top=60, bottom=30, left=0, right=0)),
-                        card(
-                            ft.Column(
-                                horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=16,
-                                controls=[
-                                    ft.Text("Welcome Back", size=22, weight="bold", color="green900"),
-                                    email_field, password_field,
-                                    ft.Container(
-                                        content=ft.TextButton("Forgot Password?",
-                                            on_click=lambda e: show_forgot(),
-                                            style=ft.ButtonStyle(color="green700")),
-                                        alignment=ft.Alignment(1, 0), width=300,
-                                    ),
-                                    green_btn("Login", on_login),
-                                    status,
-                                    ft.Divider(color="green200"),
-                                    ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
-                                        ft.Text("Don't have an account?", color="grey700"),
-                                        ft.TextButton("Sign Up", on_click=lambda e: show_signup(),
-                                            style=ft.ButtonStyle(color="green700")),
-                                    ]),
-                                ],
-                            ),
-                            radius=25,
-                            margin=ft.Margin(left=20, right=20, top=0, bottom=40),
-                        ),
-                    ],
-                ),
-            )
-        ])
+                status.value = "Please fill in all fields"; status.color = "red"; page.update()
+            else: show_home(email_field.value)
+        switch([ft.Container(expand=True, bgcolor="#f0f7f0", content=ft.Column(
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER, alignment=ft.MainAxisAlignment.CENTER,
+            scroll=ft.ScrollMode.AUTO, spacing=0, controls=[
+                ft.Container(content=logo(50), padding=ft.Padding(top=60, bottom=30, left=0, right=0)),
+                card(ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=16, controls=[
+                    ft.Text("Welcome Back", size=22, weight="bold", color="green900"),
+                    email_field, password_field,
+                    ft.Container(content=ft.TextButton("Forgot Password?", on_click=lambda e: show_forgot(),
+                        style=ft.ButtonStyle(color="green700")), alignment=ft.Alignment(1,0), width=300),
+                    green_btn("Login", on_login), status, ft.Divider(color="green200"),
+                    ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
+                        ft.Text("Don't have an account?", color="grey700"),
+                        ft.TextButton("Sign Up", on_click=lambda e: show_signup(), style=ft.ButtonStyle(color="green700")),
+                    ]),
+                ]), radius=25, margin=ft.Margin(left=20, right=20, top=0, bottom=40)),
+            ]))])
 
     # ──────────────────────────────────────────────────────
     # SIGN UP SCREEN
     # ──────────────────────────────────────────────────────
     def show_signup():
-        name_field = ft.TextField(label="Full Name", prefix_icon=ft.Icons.PERSON_OUTLINE,
-            width=300, border_radius=15, border_color="green700", focused_border_color="green900", bgcolor="white")
-        email_field = ft.TextField(label="Email", prefix_icon=ft.Icons.EMAIL_OUTLINED,
-            width=300, border_radius=15, border_color="green700",
-            focused_border_color="green900", keyboard_type=ft.KeyboardType.EMAIL, bgcolor="white")
+        name_field = ft.TextField(label="Full Name", prefix_icon=ft.Icons.PERSON_OUTLINE, width=300,
+            border_radius=15, border_color="green700", focused_border_color="green900", bgcolor="white")
+        email_field = ft.TextField(label="Email", prefix_icon=ft.Icons.EMAIL_OUTLINED, width=300,
+            border_radius=15, border_color="green700", focused_border_color="green900",
+            keyboard_type=ft.KeyboardType.EMAIL, bgcolor="white")
         password_field = ft.TextField(label="Password", prefix_icon=ft.Icons.LOCK_OUTLINE,
             password=True, can_reveal_password=True, width=300,
             border_radius=15, border_color="green700", focused_border_color="green900", bgcolor="white")
         status = ft.Text("", size=14)
-
         def on_register(e):
             if not name_field.value or not email_field.value or not password_field.value:
-                status.value = "Please fill in all fields"
-                status.color = "red"
-                page.update()
-            else:
-                show_home(email_field.value)
-
-        switch([
-            appbar("Sign Up", lambda e: show_login()),
-            ft.Container(
-                expand=True, bgcolor="#f0f7f0",
-                content=ft.Column(
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    scroll=ft.ScrollMode.AUTO, spacing=16,
-                    controls=[
-                        ft.Container(height=10), logo(40),
-                        card(
-                            ft.Column(
-                                horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=16,
-                                controls=[
-                                    ft.Text("Create Account", size=20, weight="bold", color="green900"),
-                                    name_field, email_field, password_field,
-                                    green_btn("Create Account", on_register),
-                                    status,
-                                    ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
-                                        ft.Text("Already have an account?", color="grey700"),
-                                        ft.TextButton("Login", on_click=lambda e: show_login(),
-                                            style=ft.ButtonStyle(color="green700")),
-                                    ]),
-                                ],
-                            ),
-                            radius=25,
-                            margin=ft.Margin(left=20, right=20, top=0, bottom=30),
-                        ),
-                    ],
-                ),
-            ),
-        ])
+                status.value = "Please fill in all fields"; status.color = "red"; page.update()
+            else: show_home(email_field.value)
+        switch([appbar("Sign Up", lambda e: show_login()),
+            ft.Container(expand=True, bgcolor="#f0f7f0", content=ft.Column(
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER, alignment=ft.MainAxisAlignment.CENTER,
+                scroll=ft.ScrollMode.AUTO, spacing=16, controls=[
+                    ft.Container(height=10), logo(40),
+                    card(ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=16, controls=[
+                        ft.Text("Create Account", size=20, weight="bold", color="green900"),
+                        name_field, email_field, password_field,
+                        green_btn("Create Account", on_register), status,
+                        ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
+                            ft.Text("Already have an account?", color="grey700"),
+                            ft.TextButton("Login", on_click=lambda e: show_login(), style=ft.ButtonStyle(color="green700")),
+                        ]),
+                    ]), radius=25, margin=ft.Margin(left=20, right=20, top=0, bottom=30)),
+                ]))])
 
     # ──────────────────────────────────────────────────────
     # FORGOT PASSWORD SCREEN
     # ──────────────────────────────────────────────────────
     def show_forgot():
-        email_field = ft.TextField(label="Enter your email", prefix_icon=ft.Icons.EMAIL_OUTLINED,
-            width=300, border_radius=15, border_color="green700",
-            focused_border_color="green900", keyboard_type=ft.KeyboardType.EMAIL, bgcolor="white")
+        email_field = ft.TextField(label="Enter your email", prefix_icon=ft.Icons.EMAIL_OUTLINED, width=300,
+            border_radius=15, border_color="green700", focused_border_color="green900",
+            keyboard_type=ft.KeyboardType.EMAIL, bgcolor="white")
         status = ft.Text("", size=14, text_align=ft.TextAlign.CENTER)
-
         def on_reset(e):
-            if not email_field.value:
-                status.value = "Please enter your email"
-                status.color = "red"
-            else:
-                status.value = f"Reset link sent to {email_field.value}"
-                status.color = "green700"
+            if not email_field.value: status.value = "Please enter your email"; status.color = "red"
+            else: status.value = f"Reset link sent to {email_field.value}"; status.color = "green700"
             page.update()
-
-        switch([
-            appbar("Forgot Password", lambda e: show_login()),
-            ft.Container(
-                expand=True, bgcolor="#f0f7f0", padding=20,
-                content=ft.Column(
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                    alignment=ft.MainAxisAlignment.CENTER, spacing=20,
-                    controls=[
-                        logo(40),
-                        ft.Icon(ft.Icons.LOCK_RESET, color="green700", size=50),
-                        ft.Text("Reset Password", size=22, weight="bold", color="green800"),
-                        ft.Text("Enter your email and we will send you a reset link",
-                            size=13, color="grey600", text_align=ft.TextAlign.CENTER),
-                        card(
-                            ft.Column(
-                                horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=16,
-                                controls=[email_field, green_btn("Send Reset Link", on_reset), status],
-                            ),
-                            radius=25,
-                            margin=ft.Margin(left=20, right=20, top=0, bottom=20),
-                        ),
-                        ft.TextButton("Back to Login", on_click=lambda e: show_login(),
-                            style=ft.ButtonStyle(color="green700")),
-                    ],
-                ),
-            ),
-        ])
+        switch([appbar("Forgot Password", lambda e: show_login()),
+            ft.Container(expand=True, bgcolor="#f0f7f0", padding=20, content=ft.Column(
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER, alignment=ft.MainAxisAlignment.CENTER, spacing=20,
+                controls=[
+                    logo(40), ft.Icon(ft.Icons.LOCK_RESET, color="green700", size=50),
+                    ft.Text("Reset Password", size=22, weight="bold", color="green800"),
+                    ft.Text("Enter your email and we will send you a reset link", size=13, color="grey600", text_align=ft.TextAlign.CENTER),
+                    card(ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=16,
+                        controls=[email_field, green_btn("Send Reset Link", on_reset), status]),
+                        radius=25, margin=ft.Margin(left=20, right=20, top=0, bottom=20)),
+                    ft.TextButton("Back to Login", on_click=lambda e: show_login(), style=ft.ButtonStyle(color="green700")),
+                ]))])
 
     # ──────────────────────────────────────────────────────
     # HOME SCREEN
@@ -511,8 +382,6 @@ def main(page: ft.Page):
                                 ft.Icon(ft.Icons.GRASS_ROUNDED, color="green700", size=36),
                             ],
                         ),
-
-                        # Weather widget
                         ft.Container(
                             content=ft.Column(spacing=12, controls=[
                                 ft.Row(
@@ -528,12 +397,10 @@ def main(page: ft.Page):
                                             horizontal_alignment=ft.CrossAxisAlignment.END, spacing=6,
                                             controls=[
                                                 ft.Icon(ft.Icons.WB_SUNNY_OUTLINED, color="white", size=48),
-                                                ft.Row(spacing=8, controls=[
-                                                    ft.Row(spacing=2, controls=[
-                                                        ft.Icon(ft.Icons.WATER_DROP_OUTLINED, color="#c8e6c9", size=12),
-                                                        ft.Text("Hum: --%", size=11, color="#c8e6c9"),
-                                                    ]),
-                                                ]),
+                                                ft.Row(spacing=8, controls=[ft.Row(spacing=2, controls=[
+                                                    ft.Icon(ft.Icons.WATER_DROP_OUTLINED, color="#c8e6c9", size=12),
+                                                    ft.Text("Hum: --%", size=11, color="#c8e6c9"),
+                                                ])]),
                                                 ft.Row(spacing=2, controls=[
                                                     ft.Icon(ft.Icons.AIR, color="#c8e6c9", size=12),
                                                     ft.Text("Wind: -- km/h", size=11, color="#c8e6c9"),
@@ -557,8 +424,6 @@ def main(page: ft.Page):
                             bgcolor="green700", border_radius=20, padding=20,
                             shadow=ft.BoxShadow(spread_radius=1, blur_radius=10, color=ft.Colors.with_opacity(0.15, "green900")),
                         ),
-
-                        # Crop analysis card
                         card(ft.Column(spacing=12, controls=[
                             ft.Text("Crop Analysis", size=16, weight="bold", color="green900"),
                             crop_field,
@@ -568,41 +433,27 @@ def main(page: ft.Page):
                                     text_style=ft.TextStyle(size=15, weight="bold"))),
                             status,
                         ])),
-
-                        # Soil pH Estimator card
                         ft.Container(
                             content=ft.Row(
                                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                                 controls=[
                                     ft.Row(spacing=12, controls=[
-                                        ft.Container(
-                                            content=ft.Icon(ft.Icons.WATER_DROP,
-                                                color="white", size=22),
-                                            bgcolor="brown400", border_radius=12, padding=10,
-                                        ),
+                                        ft.Container(content=ft.Icon(ft.Icons.WATER_DROP, color="white", size=22),
+                                            bgcolor="brown400", border_radius=12, padding=10),
                                         ft.Column(spacing=3, controls=[
-                                            ft.Text("Soil pH Estimator", size=14,
-                                                weight="bold", color="green900"),
-                                            ft.Text("Check soil suitability for your crop",
-                                                size=11, color="grey500"),
+                                            ft.Text("Soil pH Estimator", size=14, weight="bold", color="green900"),
+                                            ft.Text("Check soil suitability for your crop", size=11, color="grey500"),
                                         ]),
                                     ]),
-                                    ft.Container(
-                                        content=ft.Text("Open", size=11,
-                                            color="white", weight="bold"),
-                                        bgcolor="green700", border_radius=10,
-                                        padding=ft.Padding(left=12, right=12, top=6, bottom=6),
-                                    ),
+                                    ft.Container(content=ft.Text("Open", size=11, color="white", weight="bold"),
+                                        bgcolor="green700", border_radius=10, padding=ft.Padding(left=12, right=12, top=6, bottom=6)),
                                 ],
                             ),
                             bgcolor="white", border_radius=20, padding=16,
                             on_click=lambda e: show_ph_estimator(email), ink=True,
-                            shadow=ft.BoxShadow(spread_radius=1, blur_radius=10,
-                                color=ft.Colors.with_opacity(0.08, "green900")),
+                            shadow=ft.BoxShadow(spread_radius=1, blur_radius=10, color=ft.Colors.with_opacity(0.08, "green900")),
                         ),
-
-                        # Market prices
                         card(ft.Column(spacing=0, controls=[
                             ft.Row(
                                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
@@ -619,8 +470,6 @@ def main(page: ft.Page):
                             ft.Divider(color="green100"),
                             *[market_row(c) for c in market_crops],
                         ])),
-
-                        # Previous analyses
                         ft.Column(spacing=10, controls=[
                             ft.Row(
                                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
@@ -714,21 +563,48 @@ def main(page: ft.Page):
     # ANALYSIS RESULT SCREEN
     # ──────────────────────────────────────────────────────
     def show_analysis(crop_name, email=""):
+        # BACKEND: Call Groq API with prompt including:
+        #   crop_name, user lat/lon, soil_ph from ISRIC SoilGrids at user coordinates
+        # BACKEND: Groq returns JSON:
+        #   {irrigation_mm_per_day, soil_type, growth_weeks,
+        #    nitrogen_kg_ha, phosphorus_kg_ha, potassium_kg_ha, farming_difficulty}
+        # BACKEND: farming_difficulty is scored dynamically by Groq based on:
+        #   - actual soil pH from ISRIC vs crop's optimal pH range
+        #   - regional climate suitability for the crop
+        #   - returns "Easy", "Medium", or "Hard"
+        # BACKEND: INSERT full result into Supabase analyses table
+
         irrigation_val = ft.Text("4.2 mm/day", size=20, weight="bold", color="green800")
-        soil_type_val = ft.Text("Loamy", size=20, weight="bold", color="green800")
-        growth_val = ft.Text("12 weeks", size=20, weight="bold", color="green800")
-        nitrogen_val = ft.Text("45.0 kg/ha", size=15, weight="bold", color="green700")
+        soil_type_val  = ft.Text("Loamy",      size=20, weight="bold", color="green800")
+        growth_val     = ft.Text("12 weeks",   size=20, weight="bold", color="green800")
+        nitrogen_val   = ft.Text("45.0 kg/ha", size=15, weight="bold", color="green700")
         phosphorus_val = ft.Text("22.5 kg/ha", size=15, weight="bold", color="green700")
-        potassium_val = ft.Text("30.0 kg/ha", size=15, weight="bold", color="green700")
+        potassium_val  = ft.Text("30.0 kg/ha", size=15, weight="bold", color="green700")
+
+        # BACKEND: Replace "Medium" with Groq response farming_difficulty field
+        difficulty = "Medium"
+        diff_color = {"Easy": "green600", "Medium": "orange600", "Hard": "red600"}
+        diff_icon  = {
+            "Easy":   ft.Icons.CHECK_CIRCLE,
+            "Medium": ft.Icons.WARNING_ROUNDED,
+            "Hard":   ft.Icons.DANGEROUS,
+        }
+        diff_description = {
+            "Easy":   "Soil pH and climate in your region are well-suited for this crop. Minimal correction needed.",
+            "Medium": "Some soil or climate factors may need attention. Check pH and consider amendments before planting.",
+            "Hard":   "Significant soil correction or climate management required to grow this crop in your region.",
+        }
 
         def metric_card(title, value_widget, icon, color):
             return ft.Container(
                 content=ft.Column(
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=6,
-                    controls=[ft.Icon(icon, color=color, size=26), ft.Text(title, size=11, color="grey600"), value_widget],
+                    controls=[ft.Icon(icon, color=color, size=26),
+                              ft.Text(title, size=11, color="grey600"), value_widget],
                 ),
                 bgcolor="white", border_radius=20, padding=16, expand=True,
-                shadow=ft.BoxShadow(spread_radius=1, blur_radius=10, color=ft.Colors.with_opacity(0.08, "green900")),
+                shadow=ft.BoxShadow(spread_radius=1, blur_radius=10,
+                    color=ft.Colors.with_opacity(0.08, "green900")),
             )
 
         def fert_row(label, val):
@@ -744,47 +620,112 @@ def main(page: ft.Page):
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     scroll=ft.ScrollMode.AUTO, spacing=16,
                     controls=[
+
+                        # Header with crop + difficulty badge
                         card(ft.Row(
                             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                             vertical_alignment=ft.CrossAxisAlignment.CENTER,
                             controls=[
-                                ft.Column(spacing=2, controls=[
+                                ft.Column(spacing=4, controls=[
                                     ft.Text("Crop", size=12, color="grey600"),
                                     ft.Text(crop_name, size=22, weight="bold", color="green900"),
                                 ]),
-                                ft.Container(
-                                    content=ft.Text("Analyzed", size=11, color="white"),
-                                    bgcolor="green600", border_radius=8,
-                                    padding=ft.Padding(left=10, right=10, top=4, bottom=4),
-                                ),
+                                ft.Column(spacing=6,
+                                    horizontal_alignment=ft.CrossAxisAlignment.END,
+                                    controls=[
+                                    ft.Container(
+                                        content=ft.Text("Analyzed", size=11, color="white"),
+                                        bgcolor="green600", border_radius=8,
+                                        padding=ft.Padding(left=10, right=10, top=4, bottom=4),
+                                    ),
+                                    ft.Container(
+                                        content=ft.Row(spacing=5, controls=[
+                                            ft.Icon(diff_icon[difficulty], color="white", size=12),
+                                            ft.Text(difficulty, size=11, color="white", weight="bold"),
+                                        ]),
+                                        bgcolor=diff_color[difficulty], border_radius=8,
+                                        padding=ft.Padding(left=8, right=8, top=4, bottom=4),
+                                    ),
+                                ]),
                             ],
                         )),
+
+                        # Irrigation + soil type
                         ft.Row(spacing=12, controls=[
                             metric_card("Irrigation", irrigation_val, ft.Icons.WATER_DROP, "blue700"),
-                            metric_card("Soil Type", soil_type_val, ft.Icons.LANDSCAPE, "brown400"),
+                            metric_card("Soil Type",  soil_type_val,  ft.Icons.LANDSCAPE,  "brown400"),
                         ]),
+
+                        # Growth time
                         ft.Row(spacing=12, controls=[
                             metric_card("Growth Time", growth_val, ft.Icons.SCHEDULE, "green600"),
                         ]),
+
+                        # Dynamic difficulty explanation
+                        ft.Container(
+                            content=ft.Column(spacing=10, controls=[
+                                ft.Row(spacing=10,
+                                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                                    controls=[
+                                    ft.Icon(diff_icon[difficulty],
+                                        color=diff_color[difficulty], size=22),
+                                    ft.Text("Growing Difficulty",
+                                        size=15, weight="bold", color="green900"),
+                                    ft.Container(expand=True),
+                                    ft.Container(
+                                        content=ft.Text(difficulty, size=11,
+                                            color="white", weight="bold"),
+                                        bgcolor=diff_color[difficulty], border_radius=8,
+                                        padding=ft.Padding(left=10, right=10, top=4, bottom=4),
+                                    ),
+                                ]),
+                                ft.Divider(color="green100"),
+                                ft.Text(diff_description[difficulty], size=13, color="grey700"),
+                                ft.Container(
+                                    content=ft.Row(spacing=8, controls=[
+                                        ft.Icon(ft.Icons.INFO_OUTLINE, color="green600", size=14),
+                                        ft.Text(
+                                            "Scored using your soil pH (ISRIC SoilGrids) "
+                                            "and regional suitability via Groq AI",
+                                            size=11, color="grey500", expand=True,
+                                        ),
+                                    ]),
+                                    bgcolor="#f0f7f0", border_radius=8,
+                                    padding=ft.Padding(left=10, right=10, top=8, bottom=8),
+                                ),
+                            ]),
+                            bgcolor="white", border_radius=16, padding=16,
+                            shadow=ft.BoxShadow(spread_radius=1, blur_radius=10,
+                                color=ft.Colors.with_opacity(0.08, "green900")),
+                        ),
+
+                        # Fertilizer
                         card(ft.Column(spacing=12, controls=[
-                            ft.Text("Fertilizer Recommendation", size=16, weight="bold", color="green900"),
+                            ft.Text("Fertilizer Recommendation",
+                                size=16, weight="bold", color="green900"),
                             ft.Divider(color="green100"),
-                            fert_row("Nitrogen (N)", nitrogen_val),
+                            fert_row("Nitrogen (N)",   nitrogen_val),
                             fert_row("Phosphorus (P)", phosphorus_val),
-                            fert_row("Potassium (K)", potassium_val),
+                            fert_row("Potassium (K)",  potassium_val),
                         ])),
+
+                        # Irrigation alert banner
                         ft.Container(
                             content=ft.Row(spacing=10, controls=[
                                 ft.Icon(ft.Icons.WATER_DROP, color="white", size=18),
                                 ft.Column(spacing=1, expand=True, controls=[
-                                    ft.Text("Daily Irrigation Alert", size=14, weight="bold", color="white"),
-                                    ft.Text("Tap to view today's water schedule", size=11, color="#c8e6c9"),
+                                    ft.Text("Daily Irrigation Alert",
+                                        size=14, weight="bold", color="white"),
+                                    ft.Text("Tap to view today's water schedule",
+                                        size=11, color="#c8e6c9"),
                                 ]),
                                 ft.Icon(ft.Icons.ARROW_FORWARD_IOS, color="white", size=14),
                             ]),
                             bgcolor="green700", border_radius=16, padding=16,
-                            on_click=lambda e: show_daily_alert(crop_name, "4.2", email), ink=True,
-                            shadow=ft.BoxShadow(spread_radius=1, blur_radius=10, color=ft.Colors.with_opacity(0.15, "green900")),
+                            on_click=lambda e: show_daily_alert(crop_name, "4.2", email),
+                            ink=True,
+                            shadow=ft.BoxShadow(spread_radius=1, blur_radius=10,
+                                color=ft.Colors.with_opacity(0.15, "green900")),
                         ),
                     ],
                 ),
@@ -1035,7 +976,7 @@ def main(page: ft.Page):
                             divider(),
                             menu_item(ft.Icons.LANGUAGE, "Change Region", lambda e: show_change_region(email)),
                             divider(),
-                            menu_item(ft.Icons.NOTIFICATIONS_OUTLINED, "Notifications", lambda e: show_notifications(email)),
+                            menu_item(ft.Icons.NOTIFICATIONS, "Notifications", lambda e: show_notifications(email)),
                             divider(),
                             menu_item(ft.Icons.DARK_MODE_OUTLINED, "Appearance", lambda e: show_appearance(email)),
                         ]),
@@ -2284,13 +2225,24 @@ def main(page: ft.Page):
     # ──────────────────────────────────────────────────────
     # P2P CHAT SCREEN
     # ──────────────────────────────────────────────────────
-    def show_chat(seller_name, email=""):
+    def show_chat(other_name, email="", role="buyer"):
+        # role = "buyer"  → user is buying, other_name is the seller
+        # role = "seller" → user is selling, other_name is the buyer
+        # BACKEND PLACEHOLDER: Fetch chat history from Supabase `messages` table:
+        #   SELECT * FROM messages WHERE
+        #   (sender_id=current_user AND receiver_id=other_user)
+        #   OR (sender_id=other_user AND receiver_id=current_user)
+        #   ORDER BY created_at ASC
+        # BACKEND PLACEHOLDER: On send, INSERT message to Supabase and trigger
+        #   real-time subscription update
+
         username = email.split("@")[0].capitalize() if email else "You"
+        is_buyer = role == "buyer"
 
         messages = [
-            {"sender": seller_name, "text": "Hello! Yes the maize is still available. Harvested last week.", "time": "10:32 AM"},
-            {"sender": username,    "text": "Great! What is the minimum order quantity?", "time": "10:35 AM"},
-            {"sender": seller_name, "text": "Minimum is 50kg. I can arrange delivery within 50km.", "time": "10:37 AM"},
+            {"sender": other_name, "text": "Hello! Yes the produce is still available. Freshly harvested.", "time": "10:32 AM"},
+            {"sender": username,   "text": "Great! What is the minimum order quantity?", "time": "10:35 AM"},
+            {"sender": other_name, "text": "Minimum is 50kg. I can arrange delivery within 50km of my location.", "time": "10:37 AM"},
         ]
 
         msg_field = ft.TextField(
@@ -2305,25 +2257,18 @@ def main(page: ft.Page):
             content_padding=ft.Padding(left=16, right=16, top=10, bottom=10),
         )
 
-        chat_column = ft.Column(
-            scroll=ft.ScrollMode.AUTO,
-            spacing=8,
-            controls=[],
-        )
+        chat_column = ft.Column(scroll=ft.ScrollMode.AUTO, spacing=8, controls=[])
 
         def bubble(m):
             is_me = m["sender"] == username
             return ft.Row(
-                alignment=ft.MainAxisAlignment.END if is_me
-                    else ft.MainAxisAlignment.START,
+                alignment=ft.MainAxisAlignment.END if is_me else ft.MainAxisAlignment.START,
                 controls=[
                     ft.Container(
                         content=ft.Column(spacing=3, controls=[
                             ft.Text(m["sender"], size=10,
-                                color="green700" if not is_me else "white70",
-                                weight="bold",
-                                visible=not is_me,
-                            ),
+                                color="white70" if is_me else "green700",
+                                weight="bold", visible=not is_me),
                             ft.Text(m["text"], size=13,
                                 color="white" if is_me else "grey900"),
                             ft.Text(m["time"], size=9,
@@ -2348,65 +2293,109 @@ def main(page: ft.Page):
 
         def on_send(e):
             if msg_field.value and msg_field.value.strip():
-                new_msg = {
+                chat_column.controls.append(bubble({
                     "sender": username,
-                    "text": msg_field.value.strip(),
-                    "time": "Just now",
-                }
-                chat_column.controls.append(bubble(new_msg))
+                    "text":   msg_field.value.strip(),
+                    "time":   "Just now",
+                }))
                 msg_field.value = ""
                 page.update()
 
         switch([
-            appbar(seller_name, lambda e: show_marketplace(email)),
+            appbar(other_name, lambda e: show_marketplace(email, role)),
             ft.Container(
                 expand=True, bgcolor="#f0f7f0",
-                content=ft.Column(
-                    spacing=0,
-                    controls=[
-                        ft.Container(
-                            content=ft.Row(spacing=10, controls=[
-                                ft.Container(
-                                    content=ft.Text(seller_name[0], size=14,
-                                        color="white", weight="bold"),
-                                    bgcolor="green700", border_radius=20,
-                                    width=36, height=36,
-                                    alignment=ft.Alignment(0, 0),
-                                ),
-                                ft.Column(spacing=1, controls=[
-                                    ft.Text(seller_name, size=14,
-                                        weight="bold", color="green900"),
-                                    ft.Text("Farmer · Online", size=11,
-                                        color="green600"),
+                content=ft.Column(spacing=0, controls=[
+
+                    # Chat header — shows role context
+                    ft.Container(
+                        content=ft.Row(
+                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                            controls=[
+                                ft.Row(spacing=10, controls=[
+                                    ft.Container(
+                                        content=ft.Text(other_name[0], size=14,
+                                            color="white", weight="bold"),
+                                        bgcolor="green700", border_radius=20,
+                                        width=36, height=36,
+                                        alignment=ft.Alignment(0, 0),
+                                    ),
+                                    ft.Column(spacing=1, controls=[
+                                        ft.Text(other_name, size=14,
+                                            weight="bold", color="green900"),
+                                        ft.Text(
+                                            "Seller · Online" if is_buyer else "Buyer · Online",
+                                            size=11, color="green600"),
+                                    ]),
                                 ]),
-                            ]),
-                            bgcolor="white",
-                            padding=ft.Padding(left=16, right=16, top=10, bottom=10),
-                            shadow=ft.BoxShadow(spread_radius=0, blur_radius=4,
-                                color=ft.Colors.with_opacity(0.05, "green900")),
-                        ),
-                        ft.Container(
-                            expand=True,
-                            padding=ft.Padding(left=16, right=16, top=12, bottom=8),
-                            content=chat_column,
-                        ),
-                        ft.Container(
-                            content=ft.Row(spacing=8, controls=[
-                                msg_field,
-                                ft.IconButton(
-                                    icon=ft.Icons.SEND_ROUNDED,
-                                    icon_color="green700",
-                                    icon_size=22,
-                                    on_click=on_send,
+                                ft.Container(
+                                    content=ft.Text(
+                                        "You are buying" if is_buyer else "You are selling",
+                                        size=10, color="green700", weight="bold"),
+                                    bgcolor="#e8f5e9", border_radius=10,
+                                    padding=ft.Padding(left=10, right=10, top=4, bottom=4),
                                 ),
-                            ]),
-                            bgcolor="white",
-                            padding=ft.Padding(left=12, right=8, top=8, bottom=8),
-                            shadow=ft.BoxShadow(spread_radius=0, blur_radius=8,
-                                color=ft.Colors.with_opacity(0.08, "green900")),
+                            ],
                         ),
-                    ],
-                ),
+                        bgcolor="white",
+                        padding=ft.Padding(left=16, right=16, top=10, bottom=10),
+                        shadow=ft.BoxShadow(spread_radius=0, blur_radius=4,
+                            color=ft.Colors.with_opacity(0.05, "green900")),
+                    ),
+
+                    # Messages
+                    ft.Container(
+                        expand=True,
+                        padding=ft.Padding(left=16, right=16, top=12, bottom=8),
+                        content=chat_column,
+                    ),
+
+                    # Quick reply chips (buyer only)
+                    ft.Container(
+                        content=ft.Row(
+                            scroll=ft.ScrollMode.AUTO,
+                            spacing=8,
+                            controls=[
+                                ft.Container(
+                                    content=ft.Text(q, size=11, color="green700"),
+                                    bgcolor="#e8f5e9", border_radius=16,
+                                    padding=ft.Padding(left=12, right=12, top=6, bottom=6),
+                                    on_click=lambda e, q=q: (
+                                        setattr(msg_field, "value", q),
+                                        page.update()
+                                    ),
+                                    ink=True,
+                                )
+                                for q in (
+                                    ["Is this available?", "What's the minimum order?",
+                                     "Can you deliver?", "Is price negotiable?"]
+                                    if is_buyer else
+                                    ["Yes, still available", "Minimum 50kg",
+                                     "Delivery within 50km", "Price is fixed"]
+                                )
+                            ],
+                        ),
+                        bgcolor="white",
+                        padding=ft.Padding(left=12, right=12, top=8, bottom=8),
+                    ) if True else ft.Container(),
+
+                    # Message input
+                    ft.Container(
+                        content=ft.Row(spacing=8, controls=[
+                            msg_field,
+                            ft.IconButton(
+                                icon=ft.Icons.SEND_ROUNDED,
+                                icon_color="green700", icon_size=22,
+                                on_click=on_send,
+                            ),
+                        ]),
+                        bgcolor="white",
+                        padding=ft.Padding(left=12, right=8, top=8, bottom=8),
+                        shadow=ft.BoxShadow(spread_radius=0, blur_radius=8,
+                            color=ft.Colors.with_opacity(0.08, "green900")),
+                    ),
+                ]),
             ),
         ])
 
@@ -3105,7 +3094,7 @@ def main(page: ft.Page):
                                 setting_row(ft.Icons.LOCATION_ON_OUTLINED, "Change Location",
                                     lambda e: show_change_location(email)),
                                 ft.Divider(color="green100", height=1),
-                                setting_row(ft.Icons.NOTIFICATIONS_OUTLINED, "Notifications",
+                                setting_row(ft.Icons.NOTIFICATIONS, "Notifications",
                                     lambda e: show_notifications(email)),
                                 ft.Divider(color="green100", height=1),
                                 setting_row(ft.Icons.HELP_OUTLINE, "Help & FAQ",
