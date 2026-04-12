@@ -7,7 +7,14 @@ ONBOARDING_FLAG = os.path.join(os.path.expanduser("~"), ".soilco_onboarding_seen
 
 CROPS = [
     "Maize", "Wheat", "Rice", "Beans", "Soybean",
-    "Tomato", "Potato", "Sorghum", "Cassava", "Cotton"
+    "Tomato", "Potato", "Sorghum", "Cassava", "Cotton",
+    "Sunflower", "Groundnut", "Barley", "Millet", "Sugarcane",
+    "Onion", "Cabbage", "Spinach", "Pepper", "Sweet Potato",
+]
+
+SOIL_TYPES = [
+    "Loamy", "Sandy", "Clay", "Silty", "Peaty",
+    "Chalky", "Sandy Loam", "Clay Loam", "Silt Loam", "Loamy Sand",
 ]
 
 def onboarding_seen():
@@ -382,10 +389,9 @@ def main(page: ft.Page):
             )
 
         switch([
-            appbar("Soilco"),
             ft.Container(
-                expand=True, bgcolor="#f0f7f0",
-                padding=ft.Padding(left=16, right=16, top=16, bottom=20),
+                expand=True, bgcolor="white",
+                padding=ft.Padding(left=16, right=16, top=50, bottom=20),
                 content=ft.Column(
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     scroll=ft.ScrollMode.AUTO, spacing=16,
@@ -395,10 +401,10 @@ def main(page: ft.Page):
                             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                             controls=[
                                 ft.Column(spacing=2, controls=[
-                                    ft.Text("Good day,", size=13, color="grey600"),
+                                    ft.Text("Good day,", size=13, color="grey500"),
                                     ft.Text(
                                         email.split("@")[0].capitalize() if email else "Farmer",
-                                        size=20, weight="bold", color="green900"),
+                                        size=22, weight="bold", color="green900"),
                                 ]),
                                 ft.Icon(ft.Icons.GRASS_ROUNDED, color="green700", size=36),
                             ],
@@ -437,21 +443,23 @@ def main(page: ft.Page):
                                 color=ft.Colors.with_opacity(0.15, "green900")),
                         ),
 
-                        # Quick analyze banner
+                        # Quick analyze card — clean white
                         ft.Container(
-                            content=ft.Row(spacing=12, controls=[
-                                ft.Container(content=ft.Icon(ft.Icons.AUTO_AWESOME, color="white", size=22),
-                                    bgcolor=ft.Colors.with_opacity(0.2, "white"), border_radius=10, padding=8),
-                                ft.Column(spacing=2, expand=True, controls=[
-                                    ft.Text("Start Crop Analysis", size=14, weight="bold", color="white"),
-                                    ft.Text("Tap + below to pick a crop", size=11, color="#c8e6c9"),
+                            content=ft.Row(spacing=12,
+                                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                                controls=[
+                                    ft.Container(
+                                        content=ft.Icon(ft.Icons.AUTO_AWESOME, color="green700", size=20),
+                                        bgcolor="#e8f5e9", border_radius=10, padding=8),
+                                    ft.Column(spacing=2, expand=True, controls=[
+                                        ft.Text("Start Crop Analysis", size=14, weight="bold", color="green900"),
+                                        ft.Text("Tap + below to get started", size=11, color="grey500"),
+                                    ]),
+                                    ft.Icon(ft.Icons.ARROW_FORWARD_IOS, color="grey400", size=14),
                                 ]),
-                                ft.Icon(ft.Icons.ARROW_FORWARD_IOS, color="white", size=14),
-                            ]),
-                            bgcolor="green800", border_radius=16, padding=16,
+                            bgcolor="white", border_radius=16, padding=16,
+                            border=ft.border.all(1, "#e0e0e0"),
                             on_click=lambda e: show_crop_selector(email), ink=True,
-                            shadow=ft.BoxShadow(spread_radius=1, blur_radius=10,
-                                color=ft.Colors.with_opacity(0.15, "green900")),
                         ),
 
                         # Previous analyses
@@ -469,71 +477,51 @@ def main(page: ft.Page):
         ])
 
     # ──────────────────────────────────────────────────────
-    # CROP SELECTOR (Instagram + button)
+    # CROP ENTRY
     # ──────────────────────────────────────────────────────
     def show_crop_selector(email=""):
-        selected = {"crop": None}
 
-        chip_controls = []
-
-        def make_chip(crop):
-            def on_tap(e, c=crop):
-                selected["crop"] = c
-                for ch in chip_controls:
-                    ch.bgcolor = "green700" if ch.content.value == c else "white"
-                    ch.content.color = "white" if ch.content.value == c else "green700"
-                page.update()
-
-            chip = ft.Container(
-                content=ft.Text(crop, size=13, color="green700"),
-                bgcolor="white",
-                border_radius=20,
-                border=ft.border.all(1.5, "green700"),
-                padding=ft.Padding(left=18, right=18, top=10, bottom=10),
-                on_click=on_tap,
-                ink=True,
-                shadow=ft.BoxShadow(spread_radius=1, blur_radius=4,
-                    color=ft.Colors.with_opacity(0.06, "green900")),
-            )
-            chip_controls.append(chip)
-            return chip
+        crop_field = ft.TextField(
+            label="Enter crop name",
+            prefix_icon=ft.Icons.GRASS,
+            hint_text="e.g. Maize, Tomato, Wheat...",
+            border_radius=15,
+            border_color="green700",
+            focused_border_color="green900",
+            bgcolor="white",
+            width=320,
+        )
 
         status = ft.Text("", size=13, color="red", text_align=ft.TextAlign.CENTER)
 
         def on_analyze(e):
-            if not selected["crop"]:
-                status.value = "Please select a crop"
+            if not crop_field.value or not crop_field.value.strip():
+                status.value = "Please enter a crop name"
                 page.update()
                 return
-            show_analysis(selected["crop"], email)
+            show_analysis(crop_field.value.strip().capitalize(), email)
 
         switch([
-            appbar("Select a Crop", lambda e: show_home(email)),
+            appbar("Analyze Crop", lambda e: show_home(email)),
             ft.Container(
                 expand=True, bgcolor="#f0f7f0",
-                padding=ft.Padding(left=20, right=20, top=24, bottom=24),
+                padding=ft.Padding(left=20, right=20, top=30, bottom=24),
                 content=ft.Column(
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                    scroll=ft.ScrollMode.AUTO, spacing=24,
+                    scroll=ft.ScrollMode.AUTO, spacing=20,
                     controls=[
                         ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                             controls=[
                                 ft.Icon(ft.Icons.GRASS_ROUNDED, color="green700", size=40),
-                                ft.Text("Which crop are you analyzing?",
-                                    size=18, weight="bold", color="green900",
+                                ft.Text("What are you growing?",
+                                    size=20, weight="bold", color="green900",
                                     text_align=ft.TextAlign.CENTER),
-                                ft.Text("Select one of the 10 supported crops below",
-                                    size=13, color="grey600", text_align=ft.TextAlign.CENTER),
+                                ft.Text("Type in your crop and we'll handle the rest",
+                                    size=13, color="grey500", text_align=ft.TextAlign.CENTER),
                             ]),
-                        ft.Row(
-                            wrap=True,
-                            spacing=10,
-                            run_spacing=10,
-                            alignment=ft.MainAxisAlignment.CENTER,
-                            controls=[make_chip(c) for c in CROPS],
-                        ),
+                        crop_field,
                         status,
-                        green_btn("Analyze Crop", on_analyze, width=320, height=52),
+                        green_btn("Analyze", on_analyze, width=320, height=52),
                     ],
                 ),
             ),
@@ -1145,10 +1133,7 @@ def main(page: ft.Page):
             )
 
         switch([
-            appbar("Profile", actions=[
-                ft.IconButton(icon=ft.Icons.EDIT_OUTLINED, icon_color="white",
-                    on_click=lambda e: show_edit_profile(email), tooltip="Edit Profile")
-            ]),
+            appbar("Profile"),
             ft.Container(
                 expand=True, bgcolor="#f0f7f0",
                 content=ft.Column(scroll=ft.ScrollMode.AUTO, spacing=0, controls=[
@@ -1172,14 +1157,6 @@ def main(page: ft.Page):
                         bgcolor="white",
                         padding=ft.Padding(top=28, bottom=24, left=0, right=0),
                         width=page.window.width),
-
-                    # Stats — analyses only (forum/marketplace removed)
-                    ft.Container(
-                        content=ft.Row(spacing=10, controls=[
-                            stat_box("0", "Analyses"),
-                            # BACKEND: SELECT count(*) FROM soil_analyses WHERE user_id=?
-                        ]),
-                        padding=ft.Padding(left=16, right=16, top=14, bottom=14)),
 
                     # Settings
                     ft.Container(
