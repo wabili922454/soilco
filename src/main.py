@@ -846,7 +846,7 @@ def main(page: ft.Page):
             {"author": "Carol", "text": "My beans are yellowing — could be nitrogen deficiency?", "time": "1d ago"},
         ]
 
-        msg_field = ft.TextField(
+        msg_space = ft.TextField(
             hint_text="Write something...",
             border_radius=20,
             border_color="green200",
@@ -862,7 +862,7 @@ def main(page: ft.Page):
 
         def post_card(p):
             def on_reply(e, author=p["author"]):
-                msg_field.value = f"@{author} "
+                msg_space.value = f"@{author} "
                 page.update()
 
             return ft.Container(
@@ -901,15 +901,15 @@ def main(page: ft.Page):
         for p in posts:
             posts_column.controls.append(post_card(p))
 
-        def on_send(e):
-            if msg_field.value and msg_field.value.strip():
+        def send(e):
+            if msg_space.value and msg_space.value.strip():
                 # BACKEND: INSERT into forum_posts (user_id, content, created_at)
                 posts_column.controls.insert(0, post_card({
                     "author": username,
-                    "text": msg_field.value.strip(),
+                    "text": msg_space.value.strip(),
                     "time": "Just now",
                 }))
-                msg_field.value = ""
+                msg_space.value = ""
                 page.update()
 
         switch([
@@ -945,12 +945,12 @@ def main(page: ft.Page):
                     # Message input bar
                     ft.Container(
                         content=ft.Row(spacing=10, controls=[
-                            msg_field,
+                            msg_space,
                             ft.Container(
                                 content=ft.Icon(ft.Icons.SEND, color="white", size=18),
                                 bgcolor="green700", border_radius=20,
                                 width=44, height=44, alignment=ft.Alignment(0, 0),
-                                on_click=on_send, ink=True),
+                                on_click=send, ink=True),
                         ]),
                         bgcolor="white",
                         padding=ft.Padding(left=12, right=12, top=10, bottom=10),
