@@ -143,7 +143,7 @@ def main(page: ft.Page):
     # ──────────────────────────────────────────────────────
     # SPLASH
     # ──────────────────────────────────────────────────────
-    def show_splash():
+    def splash_screen():
         switch_pages([
             ft.Container(
                 expand=True, bgcolor="green700", alignment=ft.Alignment(0, 0),
@@ -1198,7 +1198,7 @@ def main(page: ft.Page):
     # ──────────────────────────────────────────────────────
     # START
     # ──────────────────────────────────────────────────────
-    show_splash()
+    splash_screen()
 
 
 if __name__ == "__main__":
