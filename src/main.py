@@ -48,7 +48,7 @@ def main(page: ft.Page):
             ]
         return ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=6, controls=controls)
 
-    def switch(controls):
+    def switch_pages(controls):
         page.controls.clear()
         for c in controls:
             page.controls.append(c)
@@ -144,7 +144,7 @@ def main(page: ft.Page):
     # SPLASH
     # ──────────────────────────────────────────────────────
     def show_splash():
-        switch([
+        switch_pages([
             ft.Container(
                 expand=True, bgcolor="green700", alignment=ft.Alignment(0, 0),
                 content=ft.Column(
@@ -189,7 +189,7 @@ def main(page: ft.Page):
             else:
                 show_onboarding(page_idx + 1)
 
-        switch([ft.Container(expand=True, bgcolor="#f0f7f0", content=ft.Column(
+        switch_pages([ft.Container(expand=True, bgcolor="#f0f7f0", content=ft.Column(
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             alignment=ft.MainAxisAlignment.CENTER, spacing=0,
             controls=[
@@ -237,7 +237,7 @@ def main(page: ft.Page):
                 # BACKEND: supabase.auth.sign_in_with_password(email, password)
                 home_page(email_field.value)
 
-        switch([ft.Container(expand=True, bgcolor="#f0f7f0", content=ft.Column(
+        switch_pages([ft.Container(expand=True, bgcolor="#f0f7f0", content=ft.Column(
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             alignment=ft.MainAxisAlignment.CENTER,
             scroll=ft.ScrollMode.AUTO, spacing=0,
@@ -285,7 +285,7 @@ def main(page: ft.Page):
                 # BACKEND: supabase.auth.sign_up(email, password) + INSERT into users
                 home_page(email_field.value)
 
-        switch([
+        switch_pages([
             appbar("Sign Up", lambda e: show_login()),
             ft.Container(expand=True, bgcolor="#f0f7f0", content=ft.Column(
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -326,7 +326,7 @@ def main(page: ft.Page):
                 status.color = "green700"
             page.update()
 
-        switch([
+        switch_pages([
             appbar("Forgot Password", lambda e: show_login()),
             ft.Container(expand=True, bgcolor="#f0f7f0", padding=20, content=ft.Column(
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -388,7 +388,7 @@ def main(page: ft.Page):
                 ink=True,
             )
 
-        switch([
+        switch_pages([
             ft.Container(
                 expand=True, bgcolor="white",
                 padding=ft.Padding(left=16, right=16, top=50, bottom=20),
@@ -501,7 +501,7 @@ def main(page: ft.Page):
                 return
             show_analysis(crop_field.value.strip().capitalize(), email)
 
-        switch([
+        switch_pages([
             appbar("Analyze Crop", lambda e: home_page(email)),
             ft.Container(
                 expand=True, bgcolor="#f0f7f0",
@@ -574,7 +574,7 @@ def main(page: ft.Page):
             return ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 controls=[ft.Text(label, size=14, color="grey700"), val])
 
-        switch([
+        switch_pages([
             appbar(f"{crop_name} Analysis", lambda e: home_page(email)),
             ft.Container(
                 expand=True, bgcolor="#f0f7f0",
@@ -698,7 +698,7 @@ def main(page: ft.Page):
                 ],
             )
 
-        switch([
+        switch_pages([
             appbar("Daily Irrigation Alert", lambda e: show_analysis(crop_name, email)),
             ft.Container(
                 expand=True, bgcolor="#f0f7f0",
@@ -912,7 +912,7 @@ def main(page: ft.Page):
                 msg_space.value = ""
                 page.update()
 
-        switch([
+        switch_pages([
             appbar("Farmers Group"),
             ft.Container(
                 expand=True, bgcolor="#f0f7f0",
@@ -987,7 +987,7 @@ def main(page: ft.Page):
                 padding=ft.Padding(left=20, right=16, top=12, bottom=12),
             )
 
-        switch([
+        switch_pages([
             appbar("Notifications", lambda e: profile_page(email)),
             ft.Container(
                 expand=True, bgcolor="#f0f7f0",
@@ -1036,7 +1036,7 @@ def main(page: ft.Page):
             status.color = "green700"
             page.update()
 
-        switch([
+        switch_pages([
             appbar("Edit Profile", lambda e: profile_page(email)),
             ft.Container(
                 expand=True, bgcolor="#f0f7f0",
@@ -1083,7 +1083,7 @@ def main(page: ft.Page):
                 status.color = "green700"
             page.update()
 
-        switch([
+        switch_pages([
             appbar("Change Password", lambda e: profile_page(email)),
             ft.Container(
                 expand=True, bgcolor="#f0f7f0",
@@ -1132,7 +1132,7 @@ def main(page: ft.Page):
                 on_click=on_tap, ink=True,
             )
 
-        switch([
+        switch_pages([
             appbar("Profile"),
             ft.Container(
                 expand=True, bgcolor="#f0f7f0",
