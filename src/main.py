@@ -74,32 +74,32 @@ def main(page: ft.Page):
             ),
         )
 
-    def appbar(title, back_fn=None, actions=None):
+    def appbar(title, back_bttn_needed=None, actions=None):
         return ft.AppBar(
             title=ft.Text(title, color="white", weight="bold"),
             bgcolor="green700",
-            leading=ft.IconButton(icon=ft.Icons.ARROW_BACK, icon_color="white", on_click=back_fn) if back_fn else None,
-            automatically_imply_leading=back_fn is not None,
+            leading=ft.IconButton(icon=ft.Icons.ARROW_BACK, icon_color="white", on_click=back_bttn_needed) if back_bttn_needed else None,
+            automatically_imply_leading=back_bttn_needed is not None,
             actions=actions or [],
         )
 
     def nav_bar(active, email):
-        # Instagram-style: Home | [+Analyze center] | Forum | Profile
-        def tab_btn(label, icon, icon_active, fn):
+        
+        def tab_btn(label, icon, icon_pressed, clicked):
             is_active = label == active
             return ft.Container(
                 content=ft.Column(
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     spacing=3,
                     controls=[
-                        ft.Icon(icon_active if is_active else icon,
+                        ft.Icon(icon_pressed if is_active else icon,
                             color="green700" if is_active else "grey500", size=24),
                         ft.Text(label, size=10,
                             color="green700" if is_active else "grey500",
                             weight="bold" if is_active else "normal"),
                     ],
                 ),
-                expand=True, on_click=fn, ink=True,
+                expand=True, on_click=clicked, ink=True,
                 padding=ft.Padding(top=8, bottom=8, left=0, right=0),
             )
 
@@ -111,8 +111,8 @@ def main(page: ft.Page):
                     ft.Container(
                         content=ft.Icon(ft.Icons.ADD, color="white", size=26),
                         bgcolor="green700",
-                        border_radius=18,
-                        width=52, height=36,
+                        border_radius=20,
+                        width=50, height=35,
                         alignment=ft.Alignment(0, 0),
                         shadow=ft.BoxShadow(spread_radius=1, blur_radius=8,
                             color=ft.Colors.with_opacity(0.25, "green900")),
@@ -121,17 +121,17 @@ def main(page: ft.Page):
                 ],
             ),
             expand=True,
-            on_click=lambda e: show_crop_selector(email),
+            on_click=lambda e: analyzer_page(email),
             ink=True,
             padding=ft.Padding(top=6, bottom=8, left=0, right=0),
         )
 
         return ft.Container(
             content=ft.Row(spacing=0, controls=[
-                tab_btn("Home", ft.Icons.HOME_OUTLINED, ft.Icons.HOME, lambda e: show_home(email)),
+                tab_btn("Home", ft.Icons.HOME_OUTLINED, ft.Icons.HOME, lambda e: home_page(email)),
                 analyze_btn,
-                tab_btn("Forum", ft.Icons.FORUM_OUTLINED, ft.Icons.FORUM, lambda e: show_forum(email)),
-                tab_btn("Profile", ft.Icons.PERSON_OUTLINE, ft.Icons.PERSON, lambda e: show_profile(email)),
+                tab_btn("Forum", ft.Icons.FORUM_OUTLINED, ft.Icons.FORUM, lambda e: forum_page(email)),
+                tab_btn("Profile", ft.Icons.PERSON_OUTLINE, ft.Icons.PERSON, lambda e: profile_page(email)),
             ]),
             bgcolor="white",
             border_radius=ft.BorderRadius(top_left=20, top_right=20, bottom_left=0, bottom_right=0),
@@ -235,7 +235,7 @@ def main(page: ft.Page):
                 page.update()
             else:
                 # BACKEND: supabase.auth.sign_in_with_password(email, password)
-                show_home(email_field.value)
+                home_page(email_field.value)
 
         switch([ft.Container(expand=True, bgcolor="#f0f7f0", content=ft.Column(
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -283,7 +283,7 @@ def main(page: ft.Page):
                 page.update()
             else:
                 # BACKEND: supabase.auth.sign_up(email, password) + INSERT into users
-                show_home(email_field.value)
+                home_page(email_field.value)
 
         switch([
             appbar("Sign Up", lambda e: show_login()),
@@ -348,7 +348,7 @@ def main(page: ft.Page):
     # ──────────────────────────────────────────────────────
     # HOME
     # ──────────────────────────────────────────────────────
-    def show_home(email=""):
+    def home_page(email=""):
         previous_crops = [
             # BACKEND: SELECT * FROM soil_analyses WHERE user_id=? ORDER BY analyzed_at DESC LIMIT 3
             {"crop": "Maize",  "date": "Feb 28", "weeks": "12 wks", "status": "Optimal"},
@@ -459,7 +459,7 @@ def main(page: ft.Page):
                                 ]),
                             bgcolor="white", border_radius=16, padding=16,
                             border=ft.border.all(1, "#e0e0e0"),
-                            on_click=lambda e: show_crop_selector(email), ink=True,
+                            on_click=lambda e: analyzer_page(email), ink=True,
                         ),
 
                         # Previous analyses
@@ -479,12 +479,12 @@ def main(page: ft.Page):
     # ──────────────────────────────────────────────────────
     # CROP ENTRY
     # ──────────────────────────────────────────────────────
-    def show_crop_selector(email=""):
+    def analyzer_page(email=""):
 
         crop_field = ft.TextField(
             label="Enter crop name",
             prefix_icon=ft.Icons.GRASS,
-            hint_text="e.g. Maize, Tomato, Wheat...",
+            
             border_radius=15,
             border_color="green700",
             focused_border_color="green900",
@@ -502,7 +502,7 @@ def main(page: ft.Page):
             show_analysis(crop_field.value.strip().capitalize(), email)
 
         switch([
-            appbar("Analyze Crop", lambda e: show_home(email)),
+            appbar("Analyze Crop", lambda e: home_page(email)),
             ft.Container(
                 expand=True, bgcolor="#f0f7f0",
                 padding=ft.Padding(left=20, right=20, top=30, bottom=24),
@@ -575,7 +575,7 @@ def main(page: ft.Page):
                 controls=[ft.Text(label, size=14, color="grey700"), val])
 
         switch([
-            appbar(f"{crop_name} Analysis", lambda e: show_home(email)),
+            appbar(f"{crop_name} Analysis", lambda e: home_page(email)),
             ft.Container(
                 expand=True, bgcolor="#f0f7f0",
                 padding=ft.Padding(left=16, right=16, top=16, bottom=20),
@@ -836,7 +836,7 @@ def main(page: ft.Page):
     # ──────────────────────────────────────────────────────
     # FORUM — single WhatsApp-style group
     # ──────────────────────────────────────────────────────
-    def show_forum(email=""):
+    def forum_page(email=""):
         username = email.split("@")[0].capitalize() if email else "Farmer"
 
         # BACKEND: SELECT * FROM forum_posts ORDER BY created_at DESC
@@ -988,7 +988,7 @@ def main(page: ft.Page):
             )
 
         switch([
-            appbar("Notifications", lambda e: show_profile(email)),
+            appbar("Notifications", lambda e: profile_page(email)),
             ft.Container(
                 expand=True, bgcolor="#f0f7f0",
                 padding=ft.Padding(left=16, right=16, top=20, bottom=20),
@@ -1037,7 +1037,7 @@ def main(page: ft.Page):
             page.update()
 
         switch([
-            appbar("Edit Profile", lambda e: show_profile(email)),
+            appbar("Edit Profile", lambda e: profile_page(email)),
             ft.Container(
                 expand=True, bgcolor="#f0f7f0",
                 padding=ft.Padding(left=16, right=16, top=20, bottom=20),
@@ -1084,7 +1084,7 @@ def main(page: ft.Page):
             page.update()
 
         switch([
-            appbar("Change Password", lambda e: show_profile(email)),
+            appbar("Change Password", lambda e: profile_page(email)),
             ft.Container(
                 expand=True, bgcolor="#f0f7f0",
                 padding=ft.Padding(left=16, right=16, top=20, bottom=20),
@@ -1105,7 +1105,7 @@ def main(page: ft.Page):
     # ──────────────────────────────────────────────────────
     # PROFILE
     # ──────────────────────────────────────────────────────
-    def show_profile(email=""):
+    def profile_page(email=""):
         username   = email.split("@")[0].capitalize() if email else "Farmer"
         user_email = email or "farmer@soilco.app"
 
