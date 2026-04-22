@@ -84,7 +84,7 @@ def main(page: ft.Page):
         )
 
     def nav_bar(active, email):
-        
+
         def tab_btn(label, icon, icon_pressed, clicked):
             is_active = label == active
             return ft.Container(
@@ -159,62 +159,9 @@ def main(page: ft.Page):
             if onboarding_seen():
                 show_login()
             else:
-                show_onboarding()
-        threading.Thread(target=go, daemon=True).start()
-
-    # ──────────────────────────────────────────────────────
-    # ONBOARDING
-    # ──────────────────────────────────────────────────────
-    def show_onboarding(page_idx=0):
-        slides = [
-            {"icon": ft.Icons.GRASS_ROUNDED, "title": "Welcome to Soilco",
-             "subtitle": "Your smart soil analysis companion for better farming decisions.", "color": "green700"},
-            {"icon": ft.Icons.WATER_DROP, "title": "Smart Irrigation",
-             "subtitle": "Get AI-powered daily irrigation recommendations based on your crop and local weather.", "color": "blue700"},
-            {"icon": ft.Icons.AUTO_AWESOME, "title": "AI Crop Analysis",
-             "subtitle": "Pick a crop and receive instant fertilizer, soil type, and growth time analysis.", "color": "orange700"},
-        ]
-        s = slides[page_idx]
-        dots = ft.Row(alignment=ft.MainAxisAlignment.CENTER, spacing=8, controls=[
-            ft.Container(width=10 if i == page_idx else 6, height=10 if i == page_idx else 6,
-                border_radius=5, bgcolor="green700" if i == page_idx else "green200")
-            for i in range(len(slides))
-        ])
-        is_last = page_idx == len(slides) - 1
-
-        def on_next(e):
-            if is_last:
                 mark_onboarding_seen()
                 show_login()
-            else:
-                show_onboarding(page_idx + 1)
-
-        switch_pages([ft.Container(expand=True, bgcolor="#f0f7f0", content=ft.Column(
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            alignment=ft.MainAxisAlignment.CENTER, spacing=0,
-            controls=[
-                ft.Container(expand=True, alignment=ft.Alignment(0, 0), content=ft.Column(
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                    alignment=ft.MainAxisAlignment.CENTER, spacing=24,
-                    controls=[
-                        ft.Container(content=ft.Icon(s["icon"], color="white", size=72),
-                            bgcolor=s["color"], border_radius=40, padding=32),
-                        ft.Text(s["title"], size=26, weight="bold", color="green900",
-                            text_align=ft.TextAlign.CENTER),
-                        ft.Text(s["subtitle"], size=15, color="grey600",
-                            text_align=ft.TextAlign.CENTER),
-                    ])),
-                ft.Container(padding=ft.Padding(left=30, right=30, top=0, bottom=40),
-                    content=ft.Column(
-                        horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=20,
-                        controls=[
-                            dots,
-                            green_btn("Get Started" if is_last else "Next", on_next, height=50),
-                            ft.TextButton("Skip",
-                                on_click=lambda e: (mark_onboarding_seen(), show_login()),
-                                style=ft.ButtonStyle(color="grey500")) if not is_last else ft.Container(height=10),
-                        ])),
-            ]))])
+        threading.Thread(target=go, daemon=True).start()
 
     # ──────────────────────────────────────────────────────
     # LOGIN
@@ -443,25 +390,6 @@ def main(page: ft.Page):
                                 color=ft.Colors.with_opacity(0.15, "green900")),
                         ),
 
-                        # Quick analyze card — clean white
-                        ft.Container(
-                            content=ft.Row(spacing=12,
-                                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                                controls=[
-                                    ft.Container(
-                                        content=ft.Icon(ft.Icons.AUTO_AWESOME, color="green700", size=20),
-                                        bgcolor="#e8f5e9", border_radius=10, padding=8),
-                                    ft.Column(spacing=2, expand=True, controls=[
-                                        ft.Text("Start Crop Analysis", size=14, weight="bold", color="green900"),
-                                        ft.Text("Tap + below to get started", size=11, color="grey500"),
-                                    ]),
-                                    ft.Icon(ft.Icons.ARROW_FORWARD_IOS, color="grey400", size=14),
-                                ]),
-                            bgcolor="white", border_radius=16, padding=16,
-                            border=ft.border.all(1, "#e0e0e0"),
-                            on_click=lambda e: analyzer_page(email), ink=True,
-                        ),
-
                         # Previous analyses
                         ft.Column(spacing=10, controls=[
                             ft.Text("Previous Analyses", size=16, weight="bold", color="green900"),
@@ -484,7 +412,7 @@ def main(page: ft.Page):
         crop_field = ft.TextField(
             label="Enter crop name",
             prefix_icon=ft.Icons.GRASS,
-            
+            hint_text="e.g. Maize, Tomato, Wheat...",
             border_radius=15,
             border_color="green700",
             focused_border_color="green900",
@@ -1013,8 +941,6 @@ def main(page: ft.Page):
             ),
         ])
 
-
-
     # ──────────────────────────────────────────────────────
     # EDIT PROFILE
     # ──────────────────────────────────────────────────────
@@ -1109,18 +1035,6 @@ def main(page: ft.Page):
         username   = email.split("@")[0].capitalize() if email else "Farmer"
         user_email = email or "farmer@soilco.app"
 
-        def stat_box(value, label):
-            return ft.Container(
-                content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=3,
-                    controls=[
-                        ft.Text(value, size=22, weight="bold", color="green800"),
-                        ft.Text(label, size=10, color="grey500"),
-                    ]),
-                expand=True, bgcolor="white", border_radius=14, padding=14,
-                shadow=ft.BoxShadow(spread_radius=1, blur_radius=6,
-                    color=ft.Colors.with_opacity(0.06, "green900")),
-            )
-
         def setting_row(icon, label, on_tap):
             return ft.Container(
                 content=ft.Row(spacing=16, controls=[
@@ -1138,7 +1052,7 @@ def main(page: ft.Page):
                 expand=True, bgcolor="#f0f7f0",
                 content=ft.Column(scroll=ft.ScrollMode.AUTO, spacing=0, controls=[
 
-                    # Profile hero — no profile picture
+                    # Profile hero
                     ft.Container(
                         content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=10,
                             controls=[
