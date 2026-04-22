@@ -49,9 +49,9 @@ def main(page: ft.Page):
     page.theme = ft.Theme(font_family="Inter")
 
     def logo(size=50, light=False, show_text=True):
-        icon_color = "white" if light else "green700"
-        text_color = "white" if light else "green800"
-        sub_color  = "#c8e6c9" if light else "green600"
+        icon_color = "white" if light else ft.Colors.GREEN700
+        text_color = ft.Colors.WHITE if light else ft.Colors.GREEN900
+        sub_color  = "#c8e6c9" if light else  ft.Colors.GREEN600
         controls = [ft.Icon(ft.Icons.GRASS_ROUNDED, color=icon_color, size=size)]
         if show_text:
             controls += [
@@ -80,17 +80,17 @@ def main(page: ft.Page):
         return ft.Button(
             label, on_click=on_click, width=width, height=height,
             style=ft.ButtonStyle(
-                bgcolor="green700", color="white",
+                bgcolor=ft.Colors.GREEN700, color=ft.Colors.WHITE,
                 shape=ft.RoundedRectangleBorder(radius=15),
                 text_style=ft.TextStyle(size=16, weight="bold"),
             ),
         )
 
     def appbar(title, back_bttn_needed=None, actions=None):
-        back_button = ft.IconButton(icon=ft.Icons.ARROW_BACK, icon_color="white", on_click=back_bttn_needed) if back_bttn_needed else None
+        back_button = ft.IconButton(icon=ft.Icons.ARROW_BACK, icon_color=ft.Colors.WHITE, on_click=back_bttn_needed) if back_bttn_needed else None
         return ft.AppBar(
-            title=ft.Text(title, color="white", weight="bold"),
-            bgcolor="green700",
+            title=ft.Text(title, color=ft.Colors.WHITE, weight="bold"),
+            bgcolor=ft.Colors.GREEN700,
             leading=back_button,
             automatically_imply_leading=back_bttn_needed is not None,
             actions=actions or [],
@@ -98,7 +98,7 @@ def main(page: ft.Page):
 
     def status_badge(text, color):
         return ft.Container(
-            content=ft.Text(text, size=11, color="white"),
+            content=ft.Text(text, size=11, color=ft.Colors.WHITE),
             bgcolor=color,
             border_radius=8,
             padding=ft.Padding(left=10, right=10, top=4, bottom=4),
