@@ -3,21 +3,21 @@ import time
 import threading
 import os
 
-ONBOARDING_FLAG = os.path.join(os.path.expanduser("~"), ".soilco_onboarding_seen")
+welcome_flag = os.path.join(os.path.expanduser("~"), ".soilco_onboarding_seen")
 
-CROPS = [
+crops = [
     "Maize", "Wheat", "Rice", "Beans", "Soybean",
     "Tomato", "Potato", "Sorghum", "Cassava", "Cotton",
     "Sunflower", "Groundnut", "Barley", "Millet", "Sugarcane",
     "Onion", "Cabbage", "Spinach", "Pepper", "Sweet Potato",
 ]
 
-SOIL_TYPES = [
+soil_types = [
     "Loamy", "Sandy", "Clay", "Silty", "Peaty",
     "Chalky", "Sandy Loam", "Clay Loam", "Silt Loam", "Loamy Sand",
 ]
 
-DIFF_COLOR = {"Easy": "green600", "Medium": "orange600", "Hard": "red600"}
+diff_color = {"Easy": ft.Colors.GREEN_600, "Medium": ft.Colors.ORANGE_600, "Hard": ft.Colors.RED_600}
 DIFF_ICON  = {
     "Easy":   ft.Icons.CHECK_CIRCLE,
     "Medium": ft.Icons.WARNING_ROUNDED,
@@ -29,11 +29,7 @@ DIFF_DESCRIPTION = {
     "Hard":   "Significant soil correction required to grow this crop in your region.",
 }
 
-def onboarding_seen():
-    return os.path.exists(ONBOARDING_FLAG)
 
-def mark_onboarding_seen():
-    open(ONBOARDING_FLAG, "w").close()
 
 
 def main(page: ft.Page):
@@ -49,9 +45,9 @@ def main(page: ft.Page):
     page.theme = ft.Theme(font_family="Inter")
 
     def logo(size=50, light=False, show_text=True):
-        icon_color = "white" if light else ft.Colors.GREEN700
-        text_color = ft.Colors.WHITE if light else ft.Colors.GREEN900
-        sub_color  = "#c8e6c9" if light else  ft.Colors.GREEN600
+        icon_color = "white" if light else ft.Colors.GREEN_700
+        text_color = ft.Colors.WHITE if light else ft.Colors.GREEN_900
+        sub_color  = "#c8e6c9" if light else  ft.Colors.GREEN_600
         controls = [ft.Icon(ft.Icons.GRASS_ROUNDED, color=icon_color, size=size)]
         if show_text:
             controls += [
@@ -80,19 +76,19 @@ def main(page: ft.Page):
         return ft.Button(
             label, on_click=on_click, width=width, height=height,
             style=ft.ButtonStyle(
-                bgcolor=ft.Colors.GREEN700, color=ft.Colors.WHITE,
+                bgcolor=ft.Colors.GREEN_700, color=ft.Colors.WHITE,
                 shape=ft.RoundedRectangleBorder(radius=15),
                 text_style=ft.TextStyle(size=16, weight="bold"),
             ),
         )
 
-    def appbar(title, back_bttn_needed=None, actions=None):
-        back_button = ft.IconButton(icon=ft.Icons.ARROW_BACK, icon_color=ft.Colors.WHITE, on_click=back_bttn_needed) if back_bttn_needed else None
+    def appbar(title, back_bttn=None, actions=None):
+        back_button = ft.IconButton(icon=ft.Icons.ARROW_BACK, icon_color=ft.Colors.WHITE, on_click=back_bttn) if back_bttn else None
         return ft.AppBar(
             title=ft.Text(title, color=ft.Colors.WHITE, weight="bold"),
-            bgcolor=ft.Colors.GREEN700,
+            bgcolor=ft.Colors.GREEN_700,
             leading=back_button,
-            automatically_imply_leading=back_bttn_needed is not None,
+            automatically_imply_leading=back_bttn is not None,
             actions=actions or [],
         )
 
@@ -118,9 +114,9 @@ def main(page: ft.Page):
         def go_profile(e):
             profile_page(email)
 
-        def tab_btn(label, icon, icon_pressed, on_click_fn):
+        def tab_btn(label, icon, icon_pressed, on_click_func):
             is_active  = label == active
-            tab_color  = "green700" if is_active else "grey500"
+            tab_color  = ft.Colors.GREEN_700 if is_active else ft.Colors.GREY_700
             tab_weight = "bold" if is_active else "normal"
             return ft.Container(
                 content=ft.Column(
@@ -131,7 +127,7 @@ def main(page: ft.Page):
                         ft.Text(label, size=10, color=tab_color, weight=tab_weight),
                     ],
                 ),
-                expand=True, on_click=on_click_fn, ink=True,
+                expand=True, on_click=on_click_func, ink=True,
                 padding=ft.Padding(top=8, bottom=8, left=0, right=0),
             )
 
@@ -141,12 +137,12 @@ def main(page: ft.Page):
                 spacing=3,
                 controls=[
                     ft.Container(
-                        content=ft.Icon(ft.Icons.ADD, color="white", size=26),
-                        bgcolor="green700", border_radius=20, width=50, height=35,
+                        content=ft.Icon(ft.Icons.ADD, color=ft.Colors.WHITE, size=26),
+                        bgcolor=ft.Colors.GREEN_700, border_radius=20, width=50, height=35,
                         alignment=ft.Alignment(0, 0),
                         shadow=ft.BoxShadow(spread_radius=1, blur_radius=8, color=ft.Colors.with_opacity(0.25, "green900")),
                     ),
-                    ft.Text("Analyze", size=10, color="green700", weight="bold"),
+                    ft.Text("Analyze", size=10, color=ft.Colors.GREEN_700, weight="bold"),
                 ],
             ),
             expand=True, on_click=go_analyze, ink=True,
@@ -166,11 +162,11 @@ def main(page: ft.Page):
             padding=ft.Padding(left=8, right=8, top=0, bottom=0),
         )
 
-    # ── SPLASH ──────────────────────────────────────────
+    # splashscreen
     def splash_screen():
         switch_pages([
             ft.Container(
-                expand=True, bgcolor="green700", alignment=ft.Alignment(0, 0),
+                expand=True, bgcolor=ft.Colors.GREEN_700, alignment=ft.Alignment(0, 0),
                 content=ft.Column(
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     alignment=ft.MainAxisAlignment.CENTER,
@@ -178,37 +174,36 @@ def main(page: ft.Page):
                 ),
             )
         ])
-        def navigate_after_splash():
+        def after_splash():
             time.sleep(2)
-            if not onboarding_seen():
-                mark_onboarding_seen()
-            show_login()
-        threading.Thread(target=navigate_after_splash, daemon=True).start()
+           
+            login_page()
+        threading.Thread(target=after_splash, daemon=True).start()
 
-    # ── LOGIN ───────────────────────────────────────────
-    def show_login():
+    #login
+    def login_page():
         email_field = ft.TextField(label="Email", prefix_icon=ft.Icons.EMAIL_OUTLINED, width=300,
-            border_radius=15, border_color="green700", focused_border_color="green900",
+            border_radius=15, border_color="green700", 
             keyboard_type=ft.KeyboardType.EMAIL, bgcolor="white")
         password_field = ft.TextField(label="Password", prefix_icon=ft.Icons.LOCK_OUTLINE,
             password=True, can_reveal_password=True, width=300,
-            border_radius=15, border_color="green700", focused_border_color="green900", bgcolor="white")
+            border_radius=15, border_color=ft.Colors.GREEN_700,  bgcolor="white")
         status = ft.Text("", size=14)
 
-        def on_login(e):
+        def login_pressed(e):
             if not email_field.value or not password_field.value:
-                status.value = "Please fill in all fields"
+                status.value = " fill in all fields"
                 status.color = "red"
                 page.update()
             else:
-                # BACKEND: supabase.auth.sign_in_with_password(email, password)
+                
                 home_page(email_field.value)
 
         def go_forgot(e):
-            show_forgot()
+            forgotPasswordPage()
 
         def go_signup(e):
-            show_signup()
+            signUp_page()
 
         forgot_btn = ft.Container(
             content=ft.TextButton("Forgot Password?", on_click=go_forgot, style=ft.ButtonStyle(color="green700")),
@@ -218,7 +213,7 @@ def main(page: ft.Page):
             alignment=ft.MainAxisAlignment.CENTER,
             controls=[
                 ft.Text("Don't have an account?", color="grey700"),
-                ft.TextButton("Sign Up", on_click=go_signup, style=ft.ButtonStyle(color="green700")),
+                ft.TextButton("Sign Up", on_click=go_signup, style=ft.ButtonStyle(color= ft.Colors.GREEN_700)),
             ],
         )
 
@@ -232,27 +227,27 @@ def main(page: ft.Page):
                     card(ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=16, controls=[
                         ft.Text("Welcome Back", size=22, weight="bold", color="green900"),
                         email_field, password_field, forgot_btn,
-                        green_btn("Login", on_login), status,
+                        green_btn("Login", login_pressed), status,
                         ft.Divider(color="green200"), signup_row,
                     ]), radius=25, margin=ft.Margin(left=20, right=20, top=0, bottom=40)),
                 ]))
         ])
 
-    # ── SIGN UP ─────────────────────────────────────────
-    def show_signup():
+    # signUp
+    def signUp_page():
         name_field = ft.TextField(label="Full Name", prefix_icon=ft.Icons.PERSON_OUTLINE, width=300,
-            border_radius=15, border_color="green700", focused_border_color="green900", bgcolor="white")
+            border_radius=15, border_color= ft.Colors.GREEN_700, focused_border_color=ft.Colors.GREEN_900, bgcolor="white")
         email_field = ft.TextField(label="Email", prefix_icon=ft.Icons.EMAIL_OUTLINED, width=300,
-            border_radius=15, border_color="green700", focused_border_color="green900",
+            border_radius=15, border_color=ft.Colors.GREEN_700, focused_border_color=ft.Colors.GREEN_900,
             keyboard_type=ft.KeyboardType.EMAIL, bgcolor="white")
         password_field = ft.TextField(label="Password", prefix_icon=ft.Icons.LOCK_OUTLINE,
             password=True, can_reveal_password=True, width=300,
-            border_radius=15, border_color="green700", focused_border_color="green900", bgcolor="white")
+            border_radius=15, border_color= ft.Colors.GREEN_700, focused_border_color=ft.Colors.GREEN_900, bgcolor="white")
         status = ft.Text("", size=14)
 
-        def on_register(e):
+        def CreateAcctPressed(e):
             if not name_field.value or not email_field.value or not password_field.value:
-                status.value = "Please fill in all fields"
+                status.value = "fill in all fields"
                 status.color = "red"
                 page.update()
             else:
@@ -260,7 +255,7 @@ def main(page: ft.Page):
                 home_page(email_field.value)
 
         def go_login(e):
-            show_login()
+            login_page()
 
         login_row = ft.Row(
             alignment=ft.MainAxisAlignment.CENTER,
@@ -271,7 +266,7 @@ def main(page: ft.Page):
         )
 
         switch_pages([
-            appbar("Sign Up", back_bttn_needed=go_login),
+            appbar("Sign Up", back_bttn=go_login),
             ft.Container(expand=True, bgcolor="#f0f7f0", content=ft.Column(
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 alignment=ft.MainAxisAlignment.CENTER,
@@ -281,13 +276,13 @@ def main(page: ft.Page):
                     card(ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=16, controls=[
                         ft.Text("Create Account", size=20, weight="bold", color="green900"),
                         name_field, email_field, password_field,
-                        green_btn("Create Account", on_register), status, login_row,
+                        green_btn("Create Account", CreateAcctPressed), status, login_row,
                     ]), radius=25, margin=ft.Margin(left=20, right=20, top=0, bottom=30)),
                 ])),
         ])
 
     # ── FORGOT PASSWORD ─────────────────────────────────
-    def show_forgot():
+    def forgotPasswordPage():
         email_field = ft.TextField(label="Enter your email", prefix_icon=ft.Icons.EMAIL_OUTLINED,
             width=300, border_radius=15, border_color="green700", focused_border_color="green900",
             keyboard_type=ft.KeyboardType.EMAIL, bgcolor="white")
@@ -304,10 +299,10 @@ def main(page: ft.Page):
             page.update()
 
         def go_login(e):
-            show_login()
+            login_page()
 
         switch_pages([
-            appbar("Forgot Password", back_bttn_needed=go_login),
+            appbar("Forgot Password", back_bttn=go_login),
             ft.Container(expand=True, bgcolor="#f0f7f0", padding=20, content=ft.Column(
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 alignment=ft.MainAxisAlignment.CENTER, spacing=20,
@@ -452,7 +447,7 @@ def main(page: ft.Page):
             home_page(email)
 
         switch_pages([
-            appbar("Analyze Crop", back_bttn_needed=go_back),
+            appbar("Analyze Crop", back_bttn=go_back),
             ft.Container(
                 expand=True, bgcolor="#f0f7f0",
                 padding=ft.Padding(left=20, right=20, top=30, bottom=24),
@@ -515,13 +510,13 @@ def main(page: ft.Page):
                     ft.Text(crop_name, size=22, weight="bold", color="green900"),
                 ]),
                 ft.Column(spacing=6, horizontal_alignment=ft.CrossAxisAlignment.END, controls=[
-                    status_badge("Analyzed", "green600"),
+                    status_badge("Analyzed", ft.Colors.GREEN_700),
                     ft.Container(
                         content=ft.Row(spacing=5, controls=[
                             ft.Icon(DIFF_ICON[difficulty], color="white", size=12),
                             ft.Text(difficulty, size=11, color="white", weight="bold"),
                         ]),
-                        bgcolor=DIFF_COLOR[difficulty], border_radius=8,
+                        bgcolor=diff_color[difficulty], border_radius=8,
                         padding=ft.Padding(left=8, right=8, top=4, bottom=4),
                     ),
                 ]),
@@ -531,10 +526,10 @@ def main(page: ft.Page):
         difficulty_card = ft.Container(
             content=ft.Column(spacing=10, controls=[
                 ft.Row(spacing=10, vertical_alignment=ft.CrossAxisAlignment.CENTER, controls=[
-                    ft.Icon(DIFF_ICON[difficulty], color=DIFF_COLOR[difficulty], size=22),
+                    ft.Icon(DIFF_ICON[difficulty], color=diff_color[difficulty], size=22),
                     ft.Text("Growing Difficulty", size=15, weight="bold", color="green900"),
                     ft.Container(expand=True),
-                    status_badge(difficulty, DIFF_COLOR[difficulty]),
+                    status_badge(difficulty, diff_color[difficulty]),
                 ]),
                 ft.Divider(color="green100"),
                 ft.Text(DIFF_DESCRIPTION[difficulty], size=13, color="grey700"),
@@ -564,7 +559,7 @@ def main(page: ft.Page):
         )
 
         switch_pages([
-            appbar(f"{crop_name} Analysis", back_bttn_needed=go_home),
+            appbar(f"{crop_name} Analysis", back_bttn=go_home),
             ft.Container(
                 expand=True, bgcolor="#f0f7f0",
                 padding=ft.Padding(left=16, right=16, top=16, bottom=20),
@@ -626,7 +621,7 @@ def main(page: ft.Page):
             )
 
         switch_pages([
-            appbar("Daily Irrigation Alert", back_bttn_needed=go_back),
+            appbar("Daily Irrigation Alert", back_bttn=go_back),
             ft.Container(
                 expand=True, bgcolor="#f0f7f0",
                 padding=ft.Padding(left=16, right=16, top=16, bottom=24),
@@ -829,7 +824,7 @@ def main(page: ft.Page):
             )
 
         switch_pages([
-            appbar("Notifications", back_bttn_needed=go_back),
+            appbar("Notifications", back_bttn=go_back),
             ft.Container(
                 expand=True, bgcolor="#f0f7f0",
                 padding=ft.Padding(left=16, right=16, top=20, bottom=20),
@@ -869,7 +864,7 @@ def main(page: ft.Page):
             profile_page(email)
 
         switch_pages([
-            appbar("Edit Profile", back_bttn_needed=go_back),
+            appbar("Edit Profile", back_bttn=go_back),
             ft.Container(expand=True, bgcolor="#f0f7f0",
                 padding=ft.Padding(left=16, right=16, top=20, bottom=20),
                 content=ft.Column(scroll=ft.ScrollMode.AUTO, spacing=16,
@@ -910,7 +905,7 @@ def main(page: ft.Page):
             profile_page(email)
 
         switch_pages([
-            appbar("Change Password", back_bttn_needed=go_back),
+            appbar("Change Password", back_bttn=go_back),
             ft.Container(expand=True, bgcolor="#f0f7f0",
                 padding=ft.Padding(left=16, right=16, top=20, bottom=20),
                 content=ft.Column(scroll=ft.ScrollMode.AUTO, spacing=16,
@@ -940,7 +935,7 @@ def main(page: ft.Page):
             show_notifications(email)
 
         def go_logout(e):
-            show_login()
+            login_page()
 
         def setting_row(icon, label, on_tap):
             return ft.Container(
