@@ -251,7 +251,7 @@ def main(page: ft.Page):
                 status.color = "red"
                 page.update()
             else:
-                # BACKEND: supabase.auth.sign_up(email, password) + INSERT into users
+                
                 home_page(email_field.value)
 
         def go_login(e):
@@ -281,19 +281,20 @@ def main(page: ft.Page):
                 ])),
         ])
 
-    # ── FORGOT PASSWORD ─────────────────────────────────
+    # forgot password 
     def forgotPasswordPage():
         email_field = ft.TextField(label="Enter your email", prefix_icon=ft.Icons.EMAIL_OUTLINED,
             width=300, border_radius=15, border_color="green700", focused_border_color="green900",
             keyboard_type=ft.KeyboardType.EMAIL, bgcolor="white")
         status = ft.Text("", size=14, text_align=ft.TextAlign.CENTER)
 
-        def on_reset(e):
+        def resetBtnPressed(e):
             if not email_field.value:
                 status.value = "Please enter your email"
                 status.color = "red"
             else:
-                # BACKEND: supabase.auth.reset_password_email(email)
+               
+               
                 status.value = f"Reset link sent to {email_field.value}"
                 status.color = "green700"
             page.update()
@@ -312,15 +313,15 @@ def main(page: ft.Page):
                     ft.Text("Reset Password", size=22, weight="bold", color="green800"),
                     ft.Text("Enter your email and we will send you a reset link", size=13, color="grey600", text_align=ft.TextAlign.CENTER),
                     card(ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=16,
-                        controls=[email_field, green_btn("Send Reset Link", on_reset), status]),
+                        controls=[email_field, green_btn("Send Reset Link", resetBtnPressed), status]),
                         radius=25, margin=ft.Margin(left=20, right=20, top=0, bottom=20)),
                     ft.TextButton("Back to Login", on_click=go_login, style=ft.ButtonStyle(color="green700")),
                 ])),
         ])
 
-    # ── HOME ────────────────────────────────────────────
+    # home
     def home_page(email=""):
-        # BACKEND: SELECT * FROM soil_analyses WHERE user_id=? ORDER BY analyzed_at DESC LIMIT 3
+        
         previous_crops = [
             {"crop": "Maize", "date": "Feb 28", "weeks": "12 wks", "status": "Optimal"},
             {"crop": "Wheat", "date": "Feb 20", "weeks": "8 wks",  "status": "Acidic"},
@@ -343,7 +344,7 @@ def main(page: ft.Page):
                         ft.Row(spacing=12, controls=[
                             ft.Container(content=ft.Icon(ft.Icons.GRASS, color="white", size=18), bgcolor="green700", border_radius=10, padding=8),
                             ft.Column(spacing=2, controls=[
-                                ft.Text(item["crop"], size=14, weight="bold", color="green900"),
+                                ft.Text(item["crop"], size=14, weight="bold", color= ft.Colors.GREEN_900),
                                 ft.Text(item["date"], size=11,               color="grey500"),
                             ]),
                         ]),
@@ -383,7 +384,7 @@ def main(page: ft.Page):
                             ft.Text("Current Weather", size=12, color="#c8e6c9"),
                             ft.Text("-- °C",            size=32, weight="bold", color="white"),
                             ft.Text("Location not set", size=12,               color="#c8e6c9"),
-                            # BACKEND: GET /weather?lat=&lon=&appid=&units=metric
+                            
                         ]),
                         ft.Column(horizontal_alignment=ft.CrossAxisAlignment.END, spacing=6, controls=[
                             ft.Icon(ft.Icons.WB_SUNNY_OUTLINED, color="white", size=48),
@@ -407,7 +408,7 @@ def main(page: ft.Page):
             spacing=10,
             controls=[
                 ft.Text("Previous Analyses", size=16, weight="bold", color="green900"),
-                # BACKEND: Replace with real Supabase query
+               
                 *[prev_crop_card(c) for c in previous_crops],
             ],
         )
