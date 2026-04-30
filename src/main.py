@@ -469,20 +469,20 @@ def main(page: ft.Page):
         ])
 
     # ── ANALYSIS RESULT ─────────────────────────────────
-    def show_analysis(crop_name, email=""):
+    def show_analysis(crop_name, email):
         # BACKEND: POST to Groq API — crop_name, user lat/lon, soil_ph from ISRIC SoilGrids
         # BACKEND: Returns JSON: {irrigation_mm_per_day, soil_type, growth_weeks,
         #                         nitrogen_kg_ha, phosphorus_kg_ha, potassium_kg_ha, farming_difficulty}
         # BACKEND: INSERT result into Supabase soil_analyses table
 
         # Placeholder values — replaced by Groq response in Sprint 2
-        irrigation_val = ft.Text("4.2 mm/day", size=20, weight="bold", color="green800")
-        soil_type_val  = ft.Text("Loamy",       size=20, weight="bold", color="green800")
-        growth_val     = ft.Text("12 weeks",    size=20, weight="bold", color="green800")
-        nitrogen_val   = ft.Text("45.0 kg/ha",  size=15, weight="bold", color="green700")
-        phosphorus_val = ft.Text("22.5 kg/ha",  size=15, weight="bold", color="green700")
-        potassium_val  = ft.Text("30.0 kg/ha",  size=15, weight="bold", color="green700")
-        difficulty     = "Medium"  # BACKEND: Replace with Groq farming_difficulty field
+        irrigation_val = ft.Text("4.2 mm/day",size=20,weight="bold", color="green800")
+        soil_type_val  = ft.Text("Loamy",size=20,weight="bold",color="green800")
+        growth_val  = ft.Text("12 weeks", size=20, weight="bold", color="green800")
+        nitrogen_val  = ft.Text("45.0 kg/ha",size=15, weight="bold",color="green700")
+        phosphorus_val = ft.Text("22.5 kg/ha",size=15, weight="bold", color="green700")
+        potassium_val  = ft.Text("30.0 kg/ha", size=15, weight="bold", color="green700")
+        difficulty  = "Medium"  # BACKEND: Replace with Groq farming_difficulty field
 
         def go_home(e):
             home_page(email)
@@ -529,7 +529,6 @@ def main(page: ft.Page):
                 ft.Row(spacing=10, vertical_alignment=ft.CrossAxisAlignment.CENTER, controls=[
                     ft.Icon(DIFF_ICON[difficulty], color=diff_color[difficulty], size=22),
                     ft.Text("Growing Difficulty", size=15, weight="bold", color="green900"),
-                    ft.Container(expand=True),
                     status_badge(difficulty, diff_color[difficulty]),
                 ]),
                 ft.Divider(color="green100"),
@@ -591,9 +590,9 @@ def main(page: ft.Page):
         ])
 
     # ── DAILY IRRIGATION ALERT ───────────────────────────
-    def show_daily_alert(crop_name="", base_irrigation="4.2", email=""):
+    def show_daily_alert(crop_name, base_irrigation, email):
         # BACKEND: GET /weather?lat=&lon=&appid=&units=metric (OpenWeatherMap)
-        weather = {"temp": "--", "humidity": "--", "wind": "--", "rain_forecast": "--"}
+        weather = {["temp", "humidity", "wind", "rain_forecast"] , "--"}
         base_mm = float(base_irrigation)
         # BACKEND: adjusted_mm = max(0, base_mm - rain_mm)
 
@@ -702,7 +701,7 @@ def main(page: ft.Page):
         ])
 
     # ── FORUM ───────────────────────────────────────────
-    def forum_page(email=""):
+    def forum_page(email):
         farmer_name = email.split("@")[0].capitalize() if email else "Farmer"
 
         # BACKEND: SELECT * FROM forum_posts ORDER BY created_at DESC
@@ -799,7 +798,7 @@ def main(page: ft.Page):
         ])
 
     # ── NOTIFICATIONS ────────────────────────────────────
-    def show_notifications(email=""):
+    def show_notifications(email):
         daily_switch   = ft.Switch(value=True,  active_color="green700")
         rain_switch    = ft.Switch(value=False, active_color="green700")
         weekly_switch  = ft.Switch(value=True,  active_color="green700")
@@ -848,7 +847,7 @@ def main(page: ft.Page):
         ])
 
     # ── EDIT PROFILE ─────────────────────────────────────
-    def show_edit_profile(email=""):
+    def show_edit_profile(email):
         name_field     = ft.TextField(label="Full Name",     prefix_icon=ft.Icons.PERSON_OUTLINE,    border_radius=15, border_color="green700", focused_border_color="green900", bgcolor="white")
         phone_field    = ft.TextField(label="Phone Number",  prefix_icon=ft.Icons.PHONE_OUTLINED,    border_radius=15, border_color="green700", focused_border_color="green900", keyboard_type=ft.KeyboardType.PHONE, bgcolor="white")
         farm_field     = ft.TextField(label="Farm Name",     prefix_icon=ft.Icons.GRASS,             border_radius=15, border_color="green700", focused_border_color="green900", bgcolor="white")
@@ -994,10 +993,8 @@ def main(page: ft.Page):
             ),
             nav_bar("Profile", email),
         ])
-
     # ── START ────────────────────────────────────────────
     splash_screen()
-
 
 if __name__ == "__main__":
     ft.run(main)
