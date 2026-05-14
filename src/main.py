@@ -493,7 +493,7 @@ def main(page: ft.Page):
         irr_store = {"mm": "0"}
 
         def load_data():
-            result = analyze_crop(crop_name, location="")
+            result = analyze_crop(crop_name, location="Abuja")
             if not result or "error" in result:
                 error_text.value = result.get("error", "Analysis failed. Please try again.") if result else "Analysis failed."
                 for w in [irrigation_val, soil_type_val, growth_val, nitrogen_val, phosphorus_val, potassium_val]:
