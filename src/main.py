@@ -1,7 +1,47 @@
+import sys
+import os
+
+# Dynamically inject both the root folder and src folder into Python's memory
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+if current_dir not in sys.path:
+    sys.path.append(current_dir)
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
+
 import flet as ft
 import time
 import threading
-import os
+from datetime import datetime
+
+# Safe import wrapper: Try both styles so it NEVER crashes your app window
+try:
+    from backend.weather_service import get_weather, calculate_irrigation_advice
+except ModuleNotFoundError:
+    try:
+        from src.backend.weather_service import get_weather, calculate_irrigation_advice
+    except ModuleNotFoundError:
+        # Fallbacks to prevent application rendering breaks
+        def get_weather(lat, lon): return None
+        def calculate_irrigation_advice(t, h): return {"status": "Normal", "advice": "Standard schedule", "icon": "info"}
+try:
+    from backend.supabase_client import get_recent_analyses, save_analysis, update_user_preferences
+except ModuleNotFoundError:
+    try:
+        from src.backend.supabase_client import get_recent_analyses, save_analysis, update_user_preferences
+    except ModuleNotFoundError:
+        # Fallback to prevent app execution crashes
+        def update_user_preferences(user_id, irrigation, weekly): return False
+try:
+    from backend.forum_service import get_forum_posts, post_to_forum
+except ModuleNotFoundError:
+    try:
+        from src.backend.forum_service import get_forum_posts, post_to_forum
+    except ModuleNotFoundError:
+        # Fallbacks to prevent application crashes
+        def get_forum_posts(limit=50): return []
+        def post_to_forum(user_id, author_name, content): return False
+
 
 welcome_flag = os.path.join(os.path.expanduser("~"), ".soilco_onboarding_seen")
 
@@ -163,7 +203,7 @@ def main(page: ft.Page):
         )
 
     # splashscreen
-    def splash_screen():
+    def login_page():
         switch_pages([
             ft.Container(
                 expand=True, bgcolor=ft.Colors.GREEN_700, alignment=ft.Alignment(0, 0),
@@ -321,12 +361,48 @@ def main(page: ft.Page):
 
     # home
     def home_page(email=""):
+        # 1. Fetch weather data right when the screen opens
+        # (Using test coordinates until Person 1 connects real database user profiles)
+        test_lat = 48.8566
+        test_lon = 2.3522
+        weather_data = get_weather(test_lat, test_lon)
+
+        # 2. Extract metrics safely using Rule 5 (Option A: fallback if None)
+        if weather_data is not None:
+            temp_str = f"{weather_data['temp']} °C"
+            humidity_str = f"Hum: {weather_data['humidity']}%"
+            wind_str = f"Wind: {weather_data['wind']} m/s"
+            location_str = "Paris, FR (Test)"
+        else:
+            temp_str = "-- °C"
+            humidity_str = "Hum: --%"
+            wind_str = "Wind: -- m/s"
+            location_str = "Weather Unavailable"
+
+        db_records = get_recent_analyses(user_id=email, limit=3)
         
-        previous_crops = [
-            {"crop": "Maize", "date": "Feb 28", "weeks": "12 wks", "status": "Optimal"},
-            {"crop": "Wheat", "date": "Feb 20", "weeks": "8 wks",  "status": "Acidic"},
-            {"crop": "Rice",  "date": "Feb 10", "weeks": "16 wks", "status": "Alkaline"},
-        ]
+        previous_crops = []
+        if db_records:
+            for record in db_records:
+                raw_date = record.get("created_at", "")
+                try:
+                    parsed_date = datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
+                    formatted_date = parsed_date.strftime("%b %d")
+                except Exception:
+                    formatted_date = "Recent"
+
+                payload = record.get("analysis_data", {})
+                
+                previous_crops.append({
+                    "crop": record.get("crop_name", "Unknown Crop"),
+                    "date": formatted_date,
+                    "weeks": payload.get("growth_stage", "N/A"),
+                    "status": payload.get("soil_status", "Optimal")
+                })
+        else:
+            previous_crops = [
+                {"crop": "No analysis yet", "date": "-", "weeks": "-", "status": "Optimal"}
+            ]
         status_colors = {"Optimal": "green700", "Acidic": "orange700", "Alkaline": "blue700"}
 
         def open_analysis(crop_name):
@@ -374,6 +450,7 @@ def main(page: ft.Page):
             ],
         )
 
+        # 3. Use the updated dynamic text variables right here!
         weather_widget = ft.Container(
             content=ft.Column(spacing=12, controls=[
                 ft.Row(
@@ -382,19 +459,18 @@ def main(page: ft.Page):
                     controls=[
                         ft.Column(spacing=4, controls=[
                             ft.Text("Current Weather", size=12, color="#c8e6c9"),
-                            ft.Text("-- °C",            size=32, weight="bold", color="white"),
-                            ft.Text("Location not set", size=12,               color="#c8e6c9"),
-                            
+                            ft.Text(temp_str,            size=32, weight="bold", color="white"),
+                            ft.Text(location_str, size=12,               color="#c8e6c9"),
                         ]),
                         ft.Column(horizontal_alignment=ft.CrossAxisAlignment.END, spacing=6, controls=[
                             ft.Icon(ft.Icons.WB_SUNNY_OUTLINED, color="white", size=48),
                             ft.Row(spacing=2, controls=[
                                 ft.Icon(ft.Icons.WATER_DROP_OUTLINED, color="#c8e6c9", size=12),
-                                ft.Text("Hum: --%", size=11, color="#c8e6c9"),
+                                ft.Text(humidity_str, size=11, color="#c8e6c9"),
                             ]),
                             ft.Row(spacing=2, controls=[
                                 ft.Icon(ft.Icons.AIR, color="#c8e6c9", size=12),
-                                ft.Text("Wind: -- km/h", size=11, color="#c8e6c9"),
+                                ft.Text(wind_str, size=11, color="#c8e6c9"),
                             ]),
                         ]),
                     ],
@@ -591,10 +667,38 @@ def main(page: ft.Page):
 
     # ── DAILY IRRIGATION ALERT ───────────────────────────
     def show_daily_alert(crop_name, base_irrigation, email):
-        # BACKEND: GET /weather?lat=&lon=&appid=&units=metric (OpenWeatherMap)
-        weather = {["temp", "humidity", "wind", "rain_forecast"] , "--"}
-        base_mm = float(base_irrigation)
-        # BACKEND: adjusted_mm = max(0, base_mm - rain_mm)
+        # 1. Initialize safe fallback dictionary to prevent crashes
+        weather = {"temp": "--", "humidity": "--", "wind": "--", "rain_forecast": "0.0"}
+        base_mm = 0.0
+        try:
+            base_mm = float(base_irrigation)
+        except ValueError:
+            pass
+
+        # 2. Fetch live atmospheric data from your backend engine
+        try:
+            test_lat, test_lon = 48.8566, 2.3522  # Standard test coordinates
+            weather_data = get_weather(test_lat, test_lon)
+            if weather_data:
+                weather["temp"] = str(weather_data.get("temp", "--"))
+                weather["humidity"] = str(weather_data.get("humidity", "--"))
+                weather["wind"] = str(weather_data.get("wind", "--"))
+                # Use a fallback value if your API plan doesn't include pop/rain data fields
+                weather["rain_forecast"] = str(weather_data.get("rain", 0.0))
+        except Exception as weather_err:
+            print(f"⚠️ Daily Alert screen weather fallback triggered: {weather_err}")
+
+        # 3. Apply the Smart Irrigation offset calculation math safely
+        try:
+            rain_mm = float(weather["rain_forecast"])
+        except ValueError:
+            rain_mm = 0.0
+
+        # Dynamic watering calculation: subtract the natural rain from the baseline needed
+        recommended_mm = max(0.0, base_mm - rain_mm)
+        
+        # Split recommended volume into 3 clean scheduling intervals
+        interval_split = round(recommended_mm / 3, 1)
 
         def go_back(e):
             show_analysis(crop_name, email)
@@ -615,7 +719,7 @@ def main(page: ft.Page):
                     ft.Icon(icon, color=icon_color, size=22),
                     ft.Text(label,    size=12, weight="bold", color="green900"),
                     ft.Text(time_str, size=11,               color="grey500"),
-                    ft.Text("-- mm",  size=13, weight="bold", color="green700"),
+                    ft.Text(f"{interval_split} mm",  size=13, weight="bold", color="green700"),
                 ]),
                 expand=True, bgcolor="#f0f7f0", border_radius=12, padding=12, alignment=ft.Alignment(0, 0),
             )
@@ -679,7 +783,7 @@ def main(page: ft.Page):
                         ft.Divider(color="green100"),
                         ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, vertical_alignment=ft.CrossAxisAlignment.CENTER, controls=[
                             ft.Text("Recommended today", size=15, weight="bold", color="green900"),
-                            ft.Container(content=ft.Text(f"{base_mm} mm", size=16, weight="bold", color="white"),
+                            ft.Container(content=ft.Text(f"{recommended_mm} mm", size=16, weight="bold", color="white"),
                                 bgcolor="green700", border_radius=10, padding=ft.Padding(left=14, right=14, top=6, bottom=6)),
                         ]),
                     ])),
@@ -701,300 +805,330 @@ def main(page: ft.Page):
         ])
 
     # ── FORUM ───────────────────────────────────────────
-    def forum_page(email):
-        farmer_name = email.split("@")[0].capitalize() if email else "Farmer"
+    def forum_page(email=""):
+        # 1. Fetch live community posts from your backend engine
+        db_posts = get_forum_posts(limit=50)
+        
+        # Format database rows into UI-ready dictionaries
+        posts = []
+        for p in db_posts:
+            # Clean up author display handles
+            display_name = p.get("author_name", "Anonymous Farmer")
+            if not display_name or display_name == "Anonymous Farmer":
+                raw_uid = p.get("user_id", "")
+                if "@" in raw_uid:
+                    display_name = raw_uid.split("@")[0].capitalize()
 
-        # BACKEND: SELECT * FROM forum_posts ORDER BY created_at DESC
-        initial_posts = [
-            {"author": "Alice", "text": "Best time to plant maize in Nairobi?",               "time": "2h ago"},
-            {"author": "Bob",   "text": "Anyone tried SRI method for rice? Great results!",    "time": "5h ago"},
-            {"author": "Carol", "text": "My beans are yellowing — could be nitrogen deficiency?", "time": "1d ago"},
-        ]
+            posts.append({
+                "author": display_name,
+                "time": "Recent",
+                "text": p.get("content", ""),
+                "likes": "0",
+                "replies": "0"
+            })
 
-        msg_space = ft.TextField(
-            hint_text="Write something...", border_radius=20,
-            border_color="green200", focused_border_color="green700",
-            bgcolor="white", expand=True, min_lines=1, max_lines=4,
-            content_padding=ft.Padding(left=16, right=16, top=10, bottom=10),
-        )
-        posts_column = ft.Column(spacing=10, controls=[])
+        # Fallback card if the global message timeline is completely empty
+        if not posts:
+            posts = [{"author": "System", "time": "Now", "text": "Welcome to the Soilco Community Forum! Start the conversation below.", "likes": "0", "replies": "0"}]
 
-        def post_card(post_data):
-            def on_reply(e):
-                msg_space.value = f"@{post_data['author']} "
-                page.update()
-
+        def post_card(item):
             return ft.Container(
                 content=ft.Column(spacing=8, controls=[
-                    ft.Row(spacing=10, vertical_alignment=ft.CrossAxisAlignment.CENTER, controls=[
-                        ft.Container(content=ft.Text(post_data["author"][0], size=13, color="white", weight="bold"),
-                            bgcolor="green700", border_radius=16, width=32, height=32, alignment=ft.Alignment(0, 0)),
-                        ft.Column(spacing=1, controls=[
-                            ft.Text(post_data["author"], size=13, weight="bold", color="green900"),
-                            ft.Text(post_data["time"],   size=10,               color="grey400"),
-                        ]),
-                    ]),
-                    ft.Text(post_data["text"], size=13, color="grey800"),
-                    ft.Row(alignment=ft.MainAxisAlignment.END, controls=[
-                        ft.Container(
-                            content=ft.Row(spacing=4, controls=[
-                                ft.Icon(ft.Icons.REPLY, color="green700", size=13),
-                                ft.Text("Reply", size=11, color="green700", weight="bold"),
+                    ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
+                        ft.Row(spacing=8, controls=[
+                            ft.CircleAvatar(content=ft.Text(item["author"][0].upper() if item["author"] else "?", color="white", size=12, weight="bold"), bgcolor="green700", radius=16),
+                            ft.Column(spacing=1, controls=[
+                                ft.Text(item["author"], size=13, weight="bold", color="green900"),
+                                ft.Text(item["time"],   size=10,               color="grey500"),
                             ]),
-                            bgcolor="#e8f5e9", border_radius=12,
-                            padding=ft.Padding(left=10, right=10, top=5, bottom=5),
-                            on_click=on_reply, ink=True,
-                        ),
+                        ]),
+                        ft.Icon(ft.Icons.MORE_VERT, color="grey400", size=18),
+                    ]),
+                    ft.Text(item["text"], size=13, color="grey800"),
+                    ft.Divider(height=1, color="grey100"),
+                    ft.Row(alignment=ft.MainAxisAlignment.START, spacing=16, controls=[
+                        ft.Row(spacing=4, controls=[ft.Icon(ft.Icons.THUMB_UP_OUTLINED, size=14, color="grey500"), ft.Text(item["likes"], size=11, color="grey500")]),
+                        ft.Row(spacing=4, controls=[ft.Icon(ft.Icons.CHAT_BUBBLE_OUTLINE, size=14, color="grey500"), ft.Text(item["replies"], size=11, color="grey500")]),
                     ]),
                 ]),
-                bgcolor="white", border_radius=16, padding=14,
-                shadow=ft.BoxShadow(spread_radius=1, blur_radius=6, color=ft.Colors.with_opacity(0.06, "green900")),
+                bgcolor="white", border_radius=14, padding=14,
+                shadow=ft.BoxShadow(spread_radius=1, blur_radius=6, color=ft.Colors.with_opacity(0.04, "green900")),
             )
 
-        for post in initial_posts:
-            posts_column.controls.append(post_card(post))
+        # Text Controller to capture typing input from the keyboard
+        post_input = ft.TextField(
+            hint_text="Share an update or ask a farming question...",
+            hint_style=ft.TextStyle(size=13, color="grey400"),
+            border=ft.InputBorder.NONE, multiline=True, min_lines=1, max_lines=3,
+            text_style=ft.TextStyle(size=13, color="green900"),
+        )
 
-        def send(e):
-            message_text = msg_space.value.strip() if msg_space.value else ""
-            if not message_text:
-                return
-            # BACKEND: INSERT into forum_posts (user_id, content, created_at)
-            posts_column.controls.insert(0, post_card({"author": farmer_name, "text": message_text, "time": "Just now"}))
-            msg_space.value = ""
-            page.update()
+        # 2. This function fires when the user clicks the "Post" button
+        def handle_submit_post(e):
+            text_to_save = post_input.value.strip()
+            if not text_to_save:
+                return # Ignore empty submission attempts
+
+            # Extract author handle name based on user's identity email
+            farmer_author = email.split("@")[0].capitalize() if email else "Farmer"
+            
+            # Save directly into your Supabase public table row
+            success = post_to_forum(user_id=email, author_name=farmer_author, content=text_to_save)
+            
+            if success:
+                post_input.value = "" # Empty out input box
+                forum_page(email)     # Refresh timeline views to display it instantly
+
+        input_container = ft.Container(
+            content=ft.Row(
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                controls=[
+                    ft.Container(content=post_input, expand=True),
+                    ft.IconButton(
+                        icon=ft.Icons.SEND_ROUNDED, 
+                        icon_color="white", 
+                        bgcolor="green700",
+                        icon_size=18,
+                        on_click=handle_submit_post  # Connect click handler
+                    ),
+                ],
+            ),
+            bgcolor="white", border_radius=24, padding=ft.Padding(left=16, right=8, top=4, bottom=4),
+            shadow=ft.BoxShadow(spread_radius=1, blur_radius=8, color=ft.Colors.with_opacity(0.06, "green900")),
+        )
 
         switch_pages([
-            appbar("Farmers Group"),
             ft.Container(
-                expand=True, bgcolor="#f0f7f0",
-                content=ft.Column(spacing=0, controls=[
-                    ft.Container(
-                        content=ft.Row(spacing=12, vertical_alignment=ft.CrossAxisAlignment.CENTER, controls=[
-                            ft.Container(content=ft.Icon(ft.Icons.GRASS_ROUNDED, color="white", size=20),
-                                bgcolor="green700", border_radius=20, width=40, height=40, alignment=ft.Alignment(0, 0)),
-                            ft.Column(spacing=2, controls=[
-                                ft.Text("Soilco Farmers",      size=14, weight="bold", color="green900"),
-                                ft.Text("Open community group", size=11,               color="grey500"),
-                            ]),
+                expand=True, bgcolor="#f5f7f5",
+                padding=ft.Padding(left=16, right=16, top=50, bottom=20),
+                content=ft.Column(
+                    spacing=14,
+                    controls=[
+                        ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
+                            ft.Text("Community Forum", size=20, weight="bold", color="green900"),
+                            ft.Icon(ft.Icons.PEOPLE_ROUNDED, color="green700", size=24),
                         ]),
-                        bgcolor="white", padding=ft.Padding(left=16, right=16, top=12, bottom=12),
-                        shadow=ft.BoxShadow(spread_radius=0, blur_radius=4, color=ft.Colors.with_opacity(0.05, "green900"))),
-                    ft.Container(expand=True,
-                        padding=ft.Padding(left=16, right=16, top=12, bottom=8),
-                        content=ft.Column(scroll=ft.ScrollMode.AUTO, spacing=0,
-                            controls=[posts_column, ft.Container(height=70)])),
-                    ft.Container(
-                        content=ft.Row(spacing=10, controls=[
-                            msg_space,
-                            ft.Container(content=ft.Icon(ft.Icons.SEND, color="white", size=18),
-                                bgcolor="green700", border_radius=20, width=44, height=44,
-                                alignment=ft.Alignment(0, 0), on_click=send, ink=True),
-                        ]),
-                        bgcolor="white", padding=ft.Padding(left=12, right=12, top=10, bottom=10),
-                        shadow=ft.BoxShadow(spread_radius=0, blur_radius=8, color=ft.Colors.with_opacity(0.08, "green900"), offset=ft.Offset(0, -2))),
-                ]),
+                        input_container,
+
+                        ft.ListView(
+                             controls=locals().get('timeline_posts', []),
+                             expand=True,
+                             spacing=10,
+                        )
+                    ],
+                ),
             ),
             nav_bar("Forum", email),
         ])
 
-    # ── NOTIFICATIONS ────────────────────────────────────
-    def show_notifications(email):
-        daily_switch   = ft.Switch(value=True,  active_color="green700")
-        rain_switch    = ft.Switch(value=False, active_color="green700")
-        weekly_switch  = ft.Switch(value=True,  active_color="green700")
-        tips_switch    = ft.Switch(value=False, active_color="green700")
+    # ── FORUM ───────────────────────────────────────────
+    def forum_page(email=""):
+        # 1. Fetch live community posts from your backend engine
+        db_posts = get_forum_posts(limit=50)
+        
+        # Format database rows into UI-ready dictionaries
+        posts = []
+        for p in db_posts:
+            # Clean up author display handles
+            display_name = p.get("author_name", "Anonymous Farmer")
+            if not display_name or display_name == "Anonymous Farmer":
+                raw_uid = p.get("user_id", "")
+                if "@" in raw_uid:
+                    display_name = raw_uid.split("@")[0].capitalize()
 
-        def go_back(e):
-            profile_page(email)
+            posts.append({
+                "author": display_name,
+                "time": "Recent",
+                "text": p.get("content", ""),
+                "likes": "0",
+                "replies": "0"
+            })
 
-        def notif_row(label, subtitle, switch_ctrl):
+        # Fallback card if the global message timeline is completely empty
+        if not posts:
+            posts = [{"author": "System", "time": "Now", "text": "Welcome to the Soilco Community Forum! Start the conversation below.", "likes": "0", "replies": "0"}]
+
+        def post_card(item):
             return ft.Container(
-                content=ft.Row(
-                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                    controls=[
-                        ft.Column(spacing=2, controls=[
-                            ft.Text(label,    size=14, color="grey900"),
-                            ft.Text(subtitle, size=11, color="grey500"),
+                content=ft.Column(spacing=8, controls=[
+                    ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
+                        ft.Row(spacing=8, controls=[
+                            ft.CircleAvatar(content=ft.Text(item["author"][0].upper() if item["author"] else "?", color="white", size=12, weight="bold"), bgcolor="green700", radius=16),
+                            ft.Column(spacing=1, controls=[
+                                ft.Text(item["author"], size=13, weight="bold", color="green900"),
+                                ft.Text(item["time"],   size=10,               color="grey500"),
+                            ]),
                         ]),
-                        switch_ctrl,
-                    ],
-                ),
-                padding=ft.Padding(left=20, right=16, top=12, bottom=12),
+                        ft.Icon(ft.Icons.MORE_VERT, color="grey400", size=18),
+                    ]),
+                    ft.Text(item["text"], size=13, color="grey800"),
+                    ft.Divider(height=1, color="grey100"),
+                    ft.Row(alignment=ft.MainAxisAlignment.START, spacing=16, controls=[
+                        ft.Row(spacing=4, controls=[ft.Icon(ft.Icons.THUMB_UP_OUTLINED, size=14, color="grey500"), ft.Text(item["likes"], size=11, color="grey500")]),
+                        ft.Row(spacing=4, controls=[ft.Icon(ft.Icons.CHAT_BUBBLE_OUTLINE, size=14, color="grey500"), ft.Text(item["replies"], size=11, color="grey500")]),
+                    ]),
+                ]),
+                bgcolor="white", border_radius=14, padding=14,
+                shadow=ft.BoxShadow(spread_radius=1, blur_radius=6, color=ft.Colors.with_opacity(0.04, "green900")),
             )
 
-        switch_pages([
-            appbar("Notifications", back_bttn=go_back),
-            ft.Container(
-                expand=True, bgcolor="#f0f7f0",
-                padding=ft.Padding(left=16, right=16, top=20, bottom=20),
-                content=ft.Column(scroll=ft.ScrollMode.AUTO, spacing=16, controls=[
-                    card(ft.Column(spacing=0, controls=[
-                        ft.Container(content=ft.Text("Alerts", size=12, color="grey500", weight="bold"), padding=ft.Padding(left=20, right=0, top=12, bottom=4)),
-                        notif_row("Daily Irrigation Alert", "Every morning at 7:00 AM",   daily_switch),
-                        ft.Divider(color="green100", height=1),
-                        notif_row("Rain Alerts",            "When heavy rain is forecast", rain_switch),
-                    ]), padding=0),
-                    card(ft.Column(spacing=0, controls=[
-                        ft.Container(content=ft.Text("Updates", size=12, color="grey500", weight="bold"), padding=ft.Padding(left=20, right=0, top=12, bottom=4)),
-                        notif_row("Weekly Summary", "Every Sunday evening",       weekly_switch),
-                        ft.Divider(color="green100", height=1),
-                        notif_row("Farming Tips",   "Weekly tips from Soilco AI", tips_switch),
-                    ]), padding=0),
-                    ft.Text("* Push notifications require the mobile app", size=11, color="grey400", italic=True),
-                ]),
+        # Map our raw post data into live Flet post_card UI controls
+        timeline_items = [post_card(item) for item in posts]
+
+        # Text Controller to capture typing input from the keyboard
+        post_input = ft.TextField(
+            hint_text="Share an update or ask a farming question...",
+            hint_style=ft.TextStyle(size=13, color="grey400"),
+            border=ft.InputBorder.NONE, multiline=True, min_lines=1, max_lines=3,
+            text_style=ft.TextStyle(size=13, color="green900"),
+        )
+
+        # 2. This function fires when the user clicks the "Post" button
+        def handle_submit_post(e):
+            text_to_save = post_input.value.strip()
+            if not text_to_save:
+                return # Ignore empty submission attempts
+
+            # Extract author handle name based on user's identity email
+            farmer_author = email.split("@")[0].capitalize() if email else "Farmer"
+            
+            # Save directly into your Supabase public table row
+            success = post_to_forum(user_id=email, author_name=farmer_author, content=text_to_save)
+            
+            if success:
+                post_input.value = "" # Empty out input box
+                forum_page(email)     # Refresh timeline views to display it instantly
+
+        input_container = ft.Container(
+            content=ft.Row(
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                controls=[
+                    ft.Container(content=post_input, expand=True),
+                    ft.IconButton(
+                        icon=ft.Icons.SEND_ROUNDED, 
+                        icon_color="white", 
+                        bgcolor="green700",
+                        icon_size=18,
+                        on_click=handle_submit_post  # Connect click handler
+                    ),
+                ],
             ),
-        ])
-
-    # ── EDIT PROFILE ─────────────────────────────────────
-    def show_edit_profile(email):
-        name_field     = ft.TextField(label="Full Name",     prefix_icon=ft.Icons.PERSON_OUTLINE,    border_radius=15, border_color="green700", focused_border_color="green900", bgcolor="white")
-        phone_field    = ft.TextField(label="Phone Number",  prefix_icon=ft.Icons.PHONE_OUTLINED,    border_radius=15, border_color="green700", focused_border_color="green900", keyboard_type=ft.KeyboardType.PHONE, bgcolor="white")
-        farm_field     = ft.TextField(label="Farm Name",     prefix_icon=ft.Icons.GRASS,             border_radius=15, border_color="green700", focused_border_color="green900", bgcolor="white")
-        location_field = ft.TextField(label="Location",      prefix_icon=ft.Icons.LOCATION_ON_OUTLINED, border_radius=15, border_color="green700", focused_border_color="green900", bgcolor="white")
-        status         = ft.Text("", size=13, text_align=ft.TextAlign.CENTER)
-
-        def on_save(e):
-            # BACKEND: UPDATE users SET full_name, phone, farm_name, location WHERE id=?
-            status.value = "Profile updated successfully"
-            status.color = "green700"
-            page.update()
-
-        def go_back(e):
-            profile_page(email)
+            bgcolor="white", border_radius=24, padding=ft.Padding(left=16, right=8, top=4, bottom=4),
+            shadow=ft.BoxShadow(spread_radius=1, blur_radius=8, color=ft.Colors.with_opacity(0.06, "green900")),
+        )
 
         switch_pages([
-            appbar("Edit Profile", back_bttn=go_back),
-            ft.Container(expand=True, bgcolor="#f0f7f0",
-                padding=ft.Padding(left=16, right=16, top=20, bottom=20),
-                content=ft.Column(scroll=ft.ScrollMode.AUTO, spacing=16,
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            ft.Container(
+                expand=True, bgcolor="#f5f7f5",
+                padding=ft.Padding(left=16, right=16, top=50, bottom=20),
+                content=ft.Column(
+                    spacing=14,
                     controls=[
-                        card(ft.Column(spacing=14, controls=[
-                            ft.Text("Personal Info", size=14, weight="bold", color="green900"),
-                            ft.Divider(color="green100"),
-                            name_field, phone_field, farm_field, location_field,
-                        ])),
-                        green_btn("Save Changes", on_save, width=320), status,
-                    ])),
-        ])
+                        ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
+                            ft.Text("Community Forum", size=20, weight="bold", color="green900"),
+                            ft.Icon(ft.Icons.PEOPLE_ROUNDED, color="green700", size=24),
+                        ]),
+                        input_container,
 
-    # ── CHANGE PASSWORD ──────────────────────────────────
-    def show_change_password(email=""):
-        current_field = ft.TextField(label="Current Password",     prefix_icon=ft.Icons.LOCK_OUTLINE, password=True, can_reveal_password=True, border_radius=15, border_color="green700", focused_border_color="green900", bgcolor="white")
-        new_field     = ft.TextField(label="New Password",         prefix_icon=ft.Icons.LOCK_OPEN,    password=True, can_reveal_password=True, border_radius=15, border_color="green700", focused_border_color="green900", bgcolor="white")
-        confirm_field = ft.TextField(label="Confirm New Password", prefix_icon=ft.Icons.LOCK_OPEN,    password=True, can_reveal_password=True, border_radius=15, border_color="green700", focused_border_color="green900", bgcolor="white")
-        status        = ft.Text("", size=13, text_align=ft.TextAlign.CENTER)
-
-        def on_save(e):
-            fields_empty    = not current_field.value or not new_field.value or not confirm_field.value
-            passwords_match = new_field.value == confirm_field.value
-            if fields_empty:
-                status.value = "Please fill in all fields"
-                status.color = "red"
-            elif not passwords_match:
-                status.value = "New passwords do not match"
-                status.color = "red"
-            else:
-                # BACKEND: supabase.auth.update_user({"password": new_field.value})
-                status.value = "Password updated successfully"
-                status.color = "green700"
-            page.update()
-
-        def go_back(e):
-            profile_page(email)
-
-        switch_pages([
-            appbar("Change Password", back_bttn=go_back),
-            ft.Container(expand=True, bgcolor="#f0f7f0",
-                padding=ft.Padding(left=16, right=16, top=20, bottom=20),
-                content=ft.Column(scroll=ft.ScrollMode.AUTO, spacing=16,
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                    controls=[
-                        card(ft.Column(spacing=14, controls=[
-                            ft.Text("Update Password", size=14, weight="bold", color="green900"),
-                            ft.Divider(color="green100"),
-                            current_field, new_field, confirm_field,
-                        ])),
-                        green_btn("Save Password", on_save, width=320), status,
-                    ])),
+                        ft.ListView(
+                             controls=timeline_items,
+                             expand=True,
+                             spacing=10,
+                        )
+                    ],
+                ),
+            ),
+            nav_bar("Forum", email),
         ])
 
     # ── PROFILE ──────────────────────────────────────────
     def profile_page(email=""):
         farmer_name = email.split("@")[0].capitalize() if email else "Farmer"
-        user_email  = email or "farmer@soilco.app"
 
-        def go_edit_profile(e):
-            show_edit_profile(email)
+        # This function fires automatically every time a switch is flipped
+        def save_settings(e):
+            # Safe database update execution
+            update_user_preferences(
+                user_id=email,
+                irrigation_alerts=irrigation_switch.value,
+                weekly_reports=reports_switch.value
+            )
 
-        def go_change_password(e):
-            show_change_password(email)
+        # UI Toggles equipped with state event listeners
+        irrigation_switch = ft.Switch(value=True, active_color="green700", on_change=save_settings)
+        reports_switch = ft.Switch(value=False, active_color="green700", on_change=save_settings)
 
-        def go_notifications(e):
-            show_notifications(email)
-
-        def go_logout(e):
-            login_page()
-
-        def setting_row(icon, label, on_tap):
+        def settings_row(icon, title, subtitle, control):
             return ft.Container(
-                content=ft.Row(spacing=16, controls=[
-                    ft.Icon(icon, color="green700", size=20),
-                    ft.Text(label, size=14, color="grey900", expand=True),
-                    ft.Icon(ft.Icons.ARROW_FORWARD_IOS, color="grey300", size=13),
-                ]),
-                padding=ft.Padding(left=16, right=16, top=14, bottom=14),
-                on_click=on_tap, ink=True,
+                content=ft.Row(
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    controls=[
+                        ft.Row(spacing=12, controls=[
+                            ft.Container(content=ft.Icon(icon, color="green700", size=20), bgcolor="#e8f5e9", border_radius=10, padding=8),
+                            ft.Column(spacing=2, controls=[
+                                ft.Text(title, size=14, weight="bold", color="green900"),
+                                ft.Text(subtitle, size=11, color="grey500"),
+                            ]),
+                        ]),
+                        control,
+                    ],
+                ),
+                bgcolor="white", border_radius=14, padding=12,
+                shadow=ft.BoxShadow(spread_radius=1, blur_radius=6, color=ft.Colors.with_opacity(0.04, "green900")),
             )
 
         switch_pages([
-            appbar("Profile"),
             ft.Container(
-                expand=True, bgcolor="#f0f7f0",
-                content=ft.Column(scroll=ft.ScrollMode.AUTO, spacing=0, controls=[
-                    ft.Container(
-                        content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=10, controls=[
-                            ft.Container(content=ft.Icon(ft.Icons.PERSON, color="white", size=52),
-                                bgcolor="green700", border_radius=50, width=100, height=100, alignment=ft.Alignment(0, 0)),
-                            ft.Text(farmer_name, size=20, weight="bold", color="green900"),
-                            ft.Text(user_email,  size=12,               color="grey600"),
-                            ft.Row(spacing=6, alignment=ft.MainAxisAlignment.CENTER, controls=[
-                                ft.Icon(ft.Icons.LOCATION_ON, color="green600", size=14),
-                                ft.Text("Location not set", size=12, color="grey500"),
-                                # BACKEND: Replace with user.location from Supabase
+                expand=True, bgcolor="#f5f7f5",
+                padding=ft.Padding(left=16, right=16, top=50, bottom=20),
+                content=ft.Column(
+                    spacing=20,
+                    controls=[
+                        ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
+                            ft.Text("Profile Settings", size=20, weight="bold", color="green900"),
+                            ft.Icon(ft.Icons.SETTINGS_ROUNDED, color="green700", size=24),
+                        ]),
+                        # User Identity Badge Card
+                        ft.Container(
+                            content=ft.Row(spacing=16, controls=[
+                                ft.CircleAvatar(content=ft.Text(farmer_name[0].upper() if farmer_name else "U", color="white", size=18, weight="bold"), bgcolor="green700", radius=28),
+                                ft.Column(spacing=4, controls=[
+                                    ft.Text(farmer_name, size=18, weight="bold", color="green900"),
+                                    ft.Text(email if email else "farmer@soilco.com", size=12, color="grey500"),
+                                ]),
                             ]),
+                            bgcolor="white", border_radius=16, padding=16,
+                            shadow=ft.BoxShadow(spread_radius=1, blur_radius=8, color=ft.Colors.with_opacity(0.04, "green900")),
+                        ),
+                        # Notifications Section
+                        ft.Column(spacing=10, controls=[
+                            ft.Text("Notification Preferences", size=14, weight="bold", color="green800"),
+                            settings_row(ft.Icons.WATER_DROP_ROUNDED, "Irrigation Alerts", "Smart watering recommendation warnings", irrigation_switch),
+                            settings_row(ft.Icons.ASSESSMENT_ROUNDED, "Weekly Health Reports", "Summary of historical soil performance metrics", reports_switch),
                         ]),
-                        bgcolor="white", padding=ft.Padding(top=28, bottom=24, left=0, right=0), width=page.window.width),
-                    ft.Container(content=ft.Text("Account Settings", size=13, color="grey500", weight="bold"),
-                        padding=ft.Padding(left=16, right=0, top=4, bottom=6)),
-                    ft.Container(
-                        content=ft.Column(spacing=0, controls=[
-                            setting_row(ft.Icons.PERSON_OUTLINE, "Edit Profile",    go_edit_profile),
-                            ft.Divider(color="green100", height=1),
-                            setting_row(ft.Icons.LOCK_OUTLINE,   "Change Password", go_change_password),
-                            ft.Divider(color="green100", height=1),
-                            setting_row(ft.Icons.NOTIFICATIONS,  "Notifications",   go_notifications),
+                        # Danger Zone / Logout Section
+                        ft.Column(spacing=10, controls=[
+                            ft.Text("Account Actions", size=14, weight="bold", color="green800"),
+                            ft.Container(
+                                content=ft.Row(spacing=12, controls=[
+                                    ft.Icon(ft.Icons.LOGOUT_ROUNDED, color="red400", size=20),
+                                    ft.Text("Log Out of Account", size=14, weight="bold", color="red400"),
+                                ]),
+                                bgcolor="white", border_radius=14, padding=14,
+                                shadow=ft.BoxShadow(spread_radius=1, blur_radius=6, color=ft.Colors.with_opacity(0.02, "green900")),
+                                on_click=lambda e: login_page(),
+                            ),
                         ]),
-                        bgcolor="white", border_radius=16,
-                        margin=ft.Margin(left=16, right=16, top=0, bottom=14),
-                        shadow=ft.BoxShadow(spread_radius=1, blur_radius=8, color=ft.Colors.with_opacity(0.06, "green900"))),
-                    ft.Container(
-                        content=ft.Row(spacing=12, alignment=ft.MainAxisAlignment.CENTER, controls=[
-                            ft.Icon(ft.Icons.LOGOUT, color="red600", size=20),
-                            ft.Text("Logout", size=14, color="red600", weight="bold"),
-                        ]),
-                        bgcolor="white", border_radius=16,
-                        margin=ft.Margin(left=16, right=16, top=0, bottom=80),
-                        padding=ft.Padding(left=20, right=20, top=14, bottom=14),
-                        on_click=go_logout, ink=True,
-                        shadow=ft.BoxShadow(spread_radius=1, blur_radius=8, color=ft.Colors.with_opacity(0.06, "green900"))),
-                ]),
+                    ],
+                ),
             ),
             nav_bar("Profile", email),
         ])
+
     # ── START ────────────────────────────────────────────
-    splash_screen()
+    login_page()
 
 if __name__ == "__main__":
     ft.run(main)
