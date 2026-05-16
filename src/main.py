@@ -161,7 +161,7 @@ def main(page: ft.Page):
             padding=ft.Padding(left=8, right=8, top=0, bottom=0),
         )
 
-    # ── SPLASH ───────────────────────────────────────────
+    # splash_screen
     def splash_screen():
         switch_pages([
             ft.Container(
@@ -178,7 +178,7 @@ def main(page: ft.Page):
             login_page()
         threading.Thread(target=after_splash, daemon=True).start()
 
-    # ── LOGIN ────────────────────────────────────────────
+    # login
     def login_page():
         email_field = ft.TextField(label="Email", prefix_icon=ft.Icons.EMAIL_OUTLINED, width=300,
             border_radius=15, border_color="green700",
@@ -230,7 +230,7 @@ def main(page: ft.Page):
                 ]))
         ])
 
-    # ── SIGN UP ──────────────────────────────────────────
+    # signup
     def signUp_page():
         name_field = ft.TextField(label="Full Name", prefix_icon=ft.Icons.PERSON_OUTLINE, width=300,
             border_radius=15, border_color=ft.Colors.GREEN_700, focused_border_color=ft.Colors.GREEN_900, bgcolor="white")
@@ -459,7 +459,7 @@ def main(page: ft.Page):
             ),
         ])
 
-    # ── ANALYSIS RESULT ──────────────────────────────────
+    # analysis reslt 
     def show_analysis(crop_name, email):
         # Live text widgets — start as "Loading..." then updated by thread
         irrigation_val = ft.Text("Loading...", size=20, weight="bold", color="green800")
