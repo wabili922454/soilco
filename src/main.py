@@ -5,7 +5,7 @@ import os
 from backend.analysis_service import analyze_crop, get_coords_from_city
 from backend.weather_service import get_weather, calculate_irrigation_advice
 from backend.forum_service import get_forum_posts, post_to_forum
-from backend.supabase_client import save_analysis, get_recent_analyses, update_user_preferences
+from backend.supabase_client import save_analysis, get_recent_analyses
 
 welcome_flag = os.path.join(os.path.expanduser("~"), ".soilco_onboarding_seen")
 
@@ -316,10 +316,10 @@ def main(page: ft.Page):
         farmer_name = email.split("@")[0].capitalize() if email else "Farmer"
 
         # live widgets updated by background thread
-        temp_text     = ft.Text("-- °C",                      size=32, weight="bold", color="white")
-        location_text = ft.Text(current_location["city"],     size=12,               color="#c8e6c9")
-        hum_text      = ft.Text("Hum: --%",                   size=11,               color="#c8e6c9")
-        wind_text     = ft.Text("Wind: -- km/h",              size=11,               color="#c8e6c9")
+        temp_text     = ft.Text("-- °C",                   size=32, weight="bold", color="white")
+        location_text = ft.Text(current_location["city"],  size=12,               color="#c8e6c9")
+        hum_text      = ft.Text("Hum: --%",                size=11,               color="#c8e6c9")
+        wind_text     = ft.Text("Wind: -- km/h",           size=11,               color="#c8e6c9")
         analyses_col  = ft.Column(spacing=10, controls=[
             ft.Text("Previous Analyses", size=16, weight="bold", color="green900"),
             ft.Text("Loading history...", size=13, color="grey500"),
@@ -336,10 +336,10 @@ def main(page: ft.Page):
             return handler
 
         def prev_crop_card(item):
-            crop   = item.get("crop_name") or item.get("crop", "Unknown")
-            date   = (item.get("analyzed_at") or item.get("date", "--"))[:10]
-            weeks  = f"{item.get('growth_weeks') or item.get('weeks', '--')} wks"
-            diff   = item.get("farming_difficulty") or item.get("status", "Optimal")
+            crop  = item.get("crop_name") or item.get("crop", "Unknown")
+            date  = (item.get("analyzed_at") or item.get("date", "--"))[:10]
+            weeks = f"{item.get('growth_weeks') or item.get('weeks', '--')} wks"
+            diff  = item.get("farming_difficulty") or item.get("status", "Optimal")
             badge_color = status_colors.get(diff, "grey500")
             return ft.Container(
                 content=ft.Row(
@@ -677,6 +677,11 @@ def main(page: ft.Page):
         rec_val     = ft.Text("-- mm",   size=16, weight="bold", color="white")
         advice_text = ft.Text("",        size=12, color="grey600", italic=True)
 
+        # schedule boxes — split adjusted irrigation across 3 sessions
+        morning_mm   = ft.Text("-- mm", size=13, weight="bold", color="green700")
+        afternoon_mm = ft.Text("-- mm", size=13, weight="bold", color="green700")
+        evening_mm   = ft.Text("-- mm", size=13, weight="bold", color="green700")
+
         try:
             base_mm = float(base_irrigation)
         except (ValueError, TypeError):
@@ -693,16 +698,22 @@ def main(page: ft.Page):
             rain_mm  = w.get("rain", 0.0)
             adjusted = max(0.0, base_mm - rain_mm)
 
-            temp_val.value  = f"{w['temp']} °C"
-            hum_val.value   = f"{w['humidity']}%"
-            rain_val.value  = f"{rain_mm} mm"
-            wind_val.value  = f"{w['wind']} km/h"
-            rain_info.value = f"{rain_mm} mm"
-            rec_val.value   = f"{adjusted} mm"
+            # split across 3 watering sessions
+            session = round(adjusted / 3, 1)
+
+            temp_val.value     = f"{w['temp']} °C"
+            hum_val.value      = f"{w['humidity']}%"
+            rain_val.value     = f"{rain_mm} mm"
+            wind_val.value     = f"{w['wind']} km/h"
+            rain_info.value    = f"{rain_mm} mm"
+            rec_val.value      = f"{adjusted} mm"
+            morning_mm.value   = f"{session} mm"
+            afternoon_mm.value = f"{session} mm"
+            evening_mm.value   = f"{session} mm"
 
             # calculate_irrigation_advice gives smart watering tip based on temp + humidity
             advice = calculate_irrigation_advice(w["temp"], w["humidity"])
-            advice_text.value = advice["advice"]
+            advice_text.value  = advice["advice"]
             page.update()
 
         threading.Thread(target=load_weather, daemon=True).start()
@@ -718,17 +729,6 @@ def main(page: ft.Page):
                     ft.Row(spacing=8, controls=[ft.Icon(icon, color=icon_color, size=18), ft.Text(label, size=13, color="grey700")]),
                     value_widget,
                 ],
-            )
-
-        def schedule_box(icon, icon_color, label, time_str):
-            return ft.Container(
-                content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4, controls=[
-                    ft.Icon(icon, color=icon_color, size=22),
-                    ft.Text(label,    size=12, weight="bold", color="green900"),
-                    ft.Text(time_str, size=11,               color="grey500"),
-                    ft.Text("-- mm",  size=13, weight="bold", color="green700"),
-                ]),
-                expand=True, bgcolor="#f0f7f0", border_radius=12, padding=12, alignment=ft.Alignment(0, 0),
             )
 
         switch_pages([
@@ -801,9 +801,33 @@ def main(page: ft.Page):
                         ft.Text("Suggested Schedule", size=15, weight="bold", color="green900"),
                         ft.Divider(color="green100"),
                         ft.Row(spacing=12, controls=[
-                            schedule_box(ft.Icons.WB_TWILIGHT, "orange600", "Morning",   "6:00 AM"),
-                            schedule_box(ft.Icons.WB_SUNNY,    "yellow700", "Afternoon", "2:00 PM"),
-                            schedule_box(ft.Icons.NIGHTS_STAY, "blue700",   "Evening",   "6:00 PM"),
+                            ft.Container(
+                                content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4, controls=[
+                                    ft.Icon(ft.Icons.WB_TWILIGHT, color="orange600", size=22),
+                                    ft.Text("Morning",  size=12, weight="bold", color="green900"),
+                                    ft.Text("6:00 AM",  size=11,               color="grey500"),
+                                    morning_mm,
+                                ]),
+                                expand=True, bgcolor="#f0f7f0", border_radius=12, padding=12, alignment=ft.Alignment(0, 0),
+                            ),
+                            ft.Container(
+                                content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4, controls=[
+                                    ft.Icon(ft.Icons.WB_SUNNY, color="yellow700", size=22),
+                                    ft.Text("Afternoon", size=12, weight="bold", color="green900"),
+                                    ft.Text("2:00 PM",   size=11,               color="grey500"),
+                                    afternoon_mm,
+                                ]),
+                                expand=True, bgcolor="#f0f7f0", border_radius=12, padding=12, alignment=ft.Alignment(0, 0),
+                            ),
+                            ft.Container(
+                                content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4, controls=[
+                                    ft.Icon(ft.Icons.NIGHTS_STAY, color="blue700", size=22),
+                                    ft.Text("Evening",  size=12, weight="bold", color="green900"),
+                                    ft.Text("6:00 PM",  size=11,               color="grey500"),
+                                    evening_mm,
+                                ]),
+                                expand=True, bgcolor="#f0f7f0", border_radius=12, padding=12, alignment=ft.Alignment(0, 0),
+                            ),
                         ]),
                     ])),
 
@@ -940,7 +964,7 @@ def main(page: ft.Page):
 
         def on_save_prefs(e):
             # backend (person 3): update_user_preferences saves to supabase once user_id available
-            from backend.database_service import update_user_preferences
+            from backend.supabase_client import update_user_preferences
             update_user_preferences(user_id="", irrigation_alerts=daily_switch.value, weekly_reports=weekly_switch.value)
 
         def notif_row(label, subtitle, switch_ctrl):
