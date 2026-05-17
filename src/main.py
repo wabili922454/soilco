@@ -2,21 +2,12 @@ import flet as ft
 import time
 import threading
 import os
-from backend.analysis_service import analyze_crop
+from backend.analysis_service import analyze_crop, get_coords_from_city
+from backend.weather_service import get_weather, calculate_irrigation_advice
+from backend.forum_service import get_forum_posts, post_to_forum
+from backend.supabase_client import save_analysis, get_recent_analyses, update_user_preferences
 
 welcome_flag = os.path.join(os.path.expanduser("~"), ".soilco_onboarding_seen")
-
-crops = [
-    "Maize", "Wheat", "Rice", "Beans", "Soybean",
-    "Tomato", "Potato", "Sorghum", "Cassava", "Cotton",
-    "Sunflower", "Groundnut", "Barley", "Millet", "Sugarcane",
-    "Onion", "Cabbage", "Spinach", "Pepper", "Sweet Potato",
-]
-
-soil_types = [
-    "Loamy", "Sandy", "Clay", "Silty", "Peaty",
-    "Chalky", "Sandy Loam", "Clay Loam", "Silt Loam", "Loamy Sand",
-]
 
 diff_color = {"Easy": ft.Colors.GREEN_600, "Medium": ft.Colors.ORANGE_600, "Hard": ft.Colors.RED_600}
 DIFF_ICON  = {
@@ -29,6 +20,10 @@ DIFF_DESCRIPTION = {
     "Medium": "Some soil or climate factors may need attention before planting.",
     "Hard":   "Significant soil correction required to grow this crop in your region.",
 }
+
+# shared location state — updated when user saves profile
+# analysis_service handles geocoding (nominatim), weather_service takes lat/lon directly
+current_location = {"city": "Abuja", "lat": 9.0643305, "lon": 7.4892974}
 
 
 def main(page: ft.Page):
@@ -161,7 +156,7 @@ def main(page: ft.Page):
             padding=ft.Padding(left=8, right=8, top=0, bottom=0),
         )
 
-    # splash_screen
+    # splashscreen
     def splash_screen():
         switch_pages([
             ft.Container(
@@ -190,10 +185,11 @@ def main(page: ft.Page):
 
         def login_pressed(e):
             if not email_field.value or not password_field.value:
-                status.value = " fill in all fields"
+                status.value = "fill in all fields"
                 status.color = "red"
                 page.update()
             else:
+                # backend (person 1): replace with supabase.auth.sign_in_with_password()
                 home_page(email_field.value)
 
         def go_forgot(e):
@@ -248,6 +244,7 @@ def main(page: ft.Page):
                 status.color = "red"
                 page.update()
             else:
+                # backend (person 1): replace with supabase.auth.sign_up()
                 home_page(email_field.value)
 
         def go_login(e):
@@ -277,7 +274,7 @@ def main(page: ft.Page):
                 ])),
         ])
 
-    # ── FORGOT PASSWORD ──────────────────────────────────
+    # forgot password
     def forgotPasswordPage():
         email_field = ft.TextField(label="Enter your email", prefix_icon=ft.Icons.EMAIL_OUTLINED,
             width=300, border_radius=15, border_color="green700", focused_border_color="green900",
@@ -289,6 +286,7 @@ def main(page: ft.Page):
                 status.value = "Please enter your email"
                 status.color = "red"
             else:
+                # backend (person 1): replace with supabase.auth.reset_password_email()
                 status.value = f"Reset link sent to {email_field.value}"
                 status.color = "green700"
             page.update()
@@ -313,14 +311,24 @@ def main(page: ft.Page):
                 ])),
         ])
 
-    # ── HOME ─────────────────────────────────────────────
+    # home
     def home_page(email=""):
-        previous_crops = [
-            {"crop": "Maize", "date": "Feb 28", "weeks": "12 wks", "status": "Optimal"},
-            {"crop": "Wheat", "date": "Feb 20", "weeks": "8 wks",  "status": "Acidic"},
-            {"crop": "Rice",  "date": "Feb 10", "weeks": "16 wks", "status": "Alkaline"},
-        ]
-        status_colors = {"Optimal": "green700", "Acidic": "orange700", "Alkaline": "blue700"}
+        farmer_name = email.split("@")[0].capitalize() if email else "Farmer"
+
+        # live widgets updated by background thread
+        temp_text     = ft.Text("-- °C",                      size=32, weight="bold", color="white")
+        location_text = ft.Text(current_location["city"],     size=12,               color="#c8e6c9")
+        hum_text      = ft.Text("Hum: --%",                   size=11,               color="#c8e6c9")
+        wind_text     = ft.Text("Wind: -- km/h",              size=11,               color="#c8e6c9")
+        analyses_col  = ft.Column(spacing=10, controls=[
+            ft.Text("Previous Analyses", size=16, weight="bold", color="green900"),
+            ft.Text("Loading history...", size=13, color="grey500"),
+        ])
+
+        status_colors = {
+            "Optimal": "green700", "Acidic": "orange700", "Alkaline": "blue700",
+            "Easy": "green700", "Medium": "orange700", "Hard": "red700",
+        }
 
         def open_analysis(crop_name):
             def handler(e):
@@ -328,7 +336,11 @@ def main(page: ft.Page):
             return handler
 
         def prev_crop_card(item):
-            badge_color = status_colors.get(item["status"], "grey500")
+            crop   = item.get("crop_name") or item.get("crop", "Unknown")
+            date   = (item.get("analyzed_at") or item.get("date", "--"))[:10]
+            weeks  = f"{item.get('growth_weeks') or item.get('weeks', '--')} wks"
+            diff   = item.get("farming_difficulty") or item.get("status", "Optimal")
+            badge_color = status_colors.get(diff, "grey500")
             return ft.Container(
                 content=ft.Row(
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
@@ -337,24 +349,55 @@ def main(page: ft.Page):
                         ft.Row(spacing=12, controls=[
                             ft.Container(content=ft.Icon(ft.Icons.GRASS, color="white", size=18), bgcolor="green700", border_radius=10, padding=8),
                             ft.Column(spacing=2, controls=[
-                                ft.Text(item["crop"], size=14, weight="bold", color=ft.Colors.GREEN_900),
-                                ft.Text(item["date"], size=11,               color="grey500"),
+                                ft.Text(crop, size=14, weight="bold", color=ft.Colors.GREEN_900),
+                                ft.Text(date, size=11,               color="grey500"),
                             ]),
                         ]),
                         ft.Column(horizontal_alignment=ft.CrossAxisAlignment.END, spacing=2, controls=[
-                            ft.Text(item["weeks"], size=13, weight="bold", color="green800"),
-                            ft.Container(content=ft.Text(item["status"], size=10, color="white"),
+                            ft.Text(weeks, size=13, weight="bold", color="green800"),
+                            ft.Container(content=ft.Text(diff, size=10, color="white"),
                                 bgcolor=badge_color, border_radius=8, padding=ft.Padding(left=8, right=8, top=3, bottom=3)),
                         ]),
                     ],
                 ),
                 bgcolor="white", border_radius=14, padding=12,
                 shadow=ft.BoxShadow(spread_radius=1, blur_radius=6, color=ft.Colors.with_opacity(0.06, "green900")),
-                on_click=open_analysis(item["crop"]),
-                ink=True,
+                on_click=open_analysis(crop), ink=True,
             )
 
-        farmer_name = email.split("@")[0].capitalize() if email else "Farmer"
+        def load_home_data():
+            # weather_service takes lat/lon directly — no geocoding needed here
+            lat = current_location["lat"]
+            lon = current_location["lon"]
+            w   = get_weather(lat, lon)
+            if w:
+                temp_text.value     = f"{w['temp']} °C"
+                hum_text.value      = f"Hum: {w['humidity']}%"
+                wind_text.value     = f"Wind: {w['wind']} km/h"
+                location_text.value = current_location["city"]
+                page.update()
+
+            # backend (person 3): get_recent_analyses fetches from supabase once connected
+            # user_id comes from person 1's auth — pass empty string for now
+            history = get_recent_analyses(user_id="")
+            analyses_col.controls.clear()
+            analyses_col.controls.append(
+                ft.Text("Previous Analyses", size=16, weight="bold", color="green900")
+            )
+            if history:
+                for item in history:
+                    analyses_col.controls.append(prev_crop_card(item))
+            else:
+                # fallback hardcoded until supabase connected
+                for item in [
+                    {"crop": "Maize", "date": "Feb 28", "weeks": "12", "status": "Optimal"},
+                    {"crop": "Wheat", "date": "Feb 20", "weeks": "8",  "status": "Acidic"},
+                    {"crop": "Rice",  "date": "Feb 10", "weeks": "16", "status": "Alkaline"},
+                ]:
+                    analyses_col.controls.append(prev_crop_card(item))
+            page.update()
+
+        threading.Thread(target=load_home_data, daemon=True).start()
 
         greeting_row = ft.Row(
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
@@ -375,18 +418,17 @@ def main(page: ft.Page):
                     controls=[
                         ft.Column(spacing=4, controls=[
                             ft.Text("Current Weather", size=12, color="#c8e6c9"),
-                            ft.Text("-- °C",            size=32, weight="bold", color="white"),
-                            ft.Text("Location not set", size=12,               color="#c8e6c9"),
+                            temp_text, location_text,
                         ]),
                         ft.Column(horizontal_alignment=ft.CrossAxisAlignment.END, spacing=6, controls=[
                             ft.Icon(ft.Icons.WB_SUNNY_OUTLINED, color="white", size=48),
                             ft.Row(spacing=2, controls=[
                                 ft.Icon(ft.Icons.WATER_DROP_OUTLINED, color="#c8e6c9", size=12),
-                                ft.Text("Hum: --%", size=11, color="#c8e6c9"),
+                                hum_text,
                             ]),
                             ft.Row(spacing=2, controls=[
                                 ft.Icon(ft.Icons.AIR, color="#c8e6c9", size=12),
-                                ft.Text("Wind: -- km/h", size=11, color="#c8e6c9"),
+                                wind_text,
                             ]),
                         ]),
                     ],
@@ -396,14 +438,6 @@ def main(page: ft.Page):
             shadow=ft.BoxShadow(spread_radius=1, blur_radius=10, color=ft.Colors.with_opacity(0.15, "green900")),
         )
 
-        analyses_section = ft.Column(
-            spacing=10,
-            controls=[
-                ft.Text("Previous Analyses", size=16, weight="bold", color="green900"),
-                *[prev_crop_card(c) for c in previous_crops],
-            ],
-        )
-
         switch_pages([
             ft.Container(
                 expand=True, bgcolor="white",
@@ -411,13 +445,13 @@ def main(page: ft.Page):
                 content=ft.Column(
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     scroll=ft.ScrollMode.AUTO, spacing=16,
-                    controls=[greeting_row, weather_widget, analyses_section, ft.Container(height=70)],
+                    controls=[greeting_row, weather_widget, analyses_col, ft.Container(height=70)],
                 ),
             ),
             nav_bar("Home", email),
         ])
 
-    # ── ANALYZER ─────────────────────────────────────────
+    # crop entry
     def analyzer_page(email=""):
         crop_field = ft.TextField(
             label="Enter crop name", prefix_icon=ft.Icons.GRASS,
@@ -459,9 +493,8 @@ def main(page: ft.Page):
             ),
         ])
 
-    # analysis reslt 
+    # analysis result
     def show_analysis(crop_name, email):
-        # Live text widgets — start as "Loading..." then updated by thread
         irrigation_val = ft.Text("Loading...", size=20, weight="bold", color="green800")
         soil_type_val  = ft.Text("Loading...", size=20, weight="bold", color="green800")
         growth_val     = ft.Text("Loading...", size=20, weight="bold", color="green800")
@@ -470,17 +503,16 @@ def main(page: ft.Page):
         potassium_val  = ft.Text("Loading...", size=15, weight="bold", color="green700")
         error_text     = ft.Text("", size=13, color="red", text_align=ft.TextAlign.CENTER)
 
-        # Difficulty widgets — mutable so thread can update them
-        diff_badge_text  = ft.Text("...", size=11, color="white", weight="bold")
-        diff_icon_small  = ft.Icon(ft.Icons.HOURGLASS_EMPTY, color="white", size=12)
-        diff_badge_cont  = ft.Container(
+        diff_badge_text = ft.Text("...", size=11, color="white", weight="bold")
+        diff_icon_small = ft.Icon(ft.Icons.HOURGLASS_EMPTY, color="white", size=12)
+        diff_badge_cont = ft.Container(
             content=ft.Row(spacing=5, controls=[diff_icon_small, diff_badge_text]),
             bgcolor=ft.Colors.GREY_400, border_radius=8,
             padding=ft.Padding(left=8, right=8, top=4, bottom=4),
         )
-        diff_icon_big   = ft.Icon(ft.Icons.HOURGLASS_EMPTY, color=ft.Colors.GREY_400, size=22)
-        diff_desc_text  = ft.Text("Analysing crop data...", size=13, color="grey700")
-        diff_badge_row  = ft.Container(
+        diff_icon_big  = ft.Icon(ft.Icons.HOURGLASS_EMPTY, color=ft.Colors.GREY_400, size=22)
+        diff_desc_text = ft.Text("Analysing crop data...", size=13, color="grey700")
+        diff_badge_row = ft.Container(
             content=ft.Row(spacing=5, controls=[
                 ft.Icon(ft.Icons.HOURGLASS_EMPTY, color="white", size=12),
                 ft.Text("...", size=11, color="white", weight="bold"),
@@ -489,13 +521,14 @@ def main(page: ft.Page):
             padding=ft.Padding(left=8, right=8, top=4, bottom=4),
         )
 
-        # Store irrigation mm for the banner tap
         irr_store = {"mm": "0"}
 
         def load_data():
-            result = analyze_crop(crop_name, location="Abuja")
+            # analysis_service handles geocoding internally using current city
+            result = analyze_crop(crop_name, location=current_location["city"])
+
             if not result or "error" in result:
-                error_text.value = result.get("error", "Analysis failed. Please try again.") if result else "Analysis failed."
+                error_text.value = result.get("error", "Analysis failed.") if result else "Analysis failed."
                 for w in [irrigation_val, soil_type_val, growth_val, nitrogen_val, phosphorus_val, potassium_val]:
                     w.value = "--"
                 page.update()
@@ -515,20 +548,22 @@ def main(page: ft.Page):
             phosphorus_val.value  = f"{result.get('phosphorus_kg_ha', '--')} kg/ha"
             potassium_val.value   = f"{result.get('potassium_kg_ha', '--')} kg/ha"
 
-            # Update difficulty widgets
-            diff_badge_text.value      = d
-            diff_icon_small.name       = DIFF_ICON[d]
-            diff_badge_cont.bgcolor    = diff_color[d]
-            diff_icon_big.name         = DIFF_ICON[d]
-            diff_icon_big.color        = diff_color[d]
-            diff_desc_text.value       = DIFF_DESCRIPTION[d]
-            diff_badge_row.content     = ft.Row(spacing=5, controls=[
+            diff_badge_text.value   = d
+            diff_icon_small.name    = DIFF_ICON[d]
+            diff_badge_cont.bgcolor = diff_color[d]
+            diff_icon_big.name      = DIFF_ICON[d]
+            diff_icon_big.color     = diff_color[d]
+            diff_desc_text.value    = DIFF_DESCRIPTION[d]
+            diff_badge_row.content  = ft.Row(spacing=5, controls=[
                 ft.Icon(DIFF_ICON[d], color="white", size=12),
                 ft.Text(d, size=11, color="white", weight="bold"),
             ])
-            diff_badge_row.bgcolor     = diff_color[d]
-
+            diff_badge_row.bgcolor  = diff_color[d]
             page.update()
+
+            # backend (person 3): save_analysis stores result in supabase
+            # user_id comes from person 1's auth — pass empty string for now
+            save_analysis(user_id="", crop_name=crop_name, analysis_data=result)
 
         threading.Thread(target=load_data, daemon=True).start()
 
@@ -609,8 +644,7 @@ def main(page: ft.Page):
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     scroll=ft.ScrollMode.AUTO, spacing=16,
                     controls=[
-                        header_card,
-                        error_text,
+                        header_card, error_text,
                         ft.Row(spacing=12, controls=[
                             metric_card("Irrigation", irrigation_val, ft.Icons.WATER_DROP, "blue700"),
                             metric_card("Soil Type",  soil_type_val,  ft.Icons.LANDSCAPE,  "brown400"),
@@ -632,26 +666,57 @@ def main(page: ft.Page):
             ),
         ])
 
-    # ── DAILY IRRIGATION ALERT ───────────────────────────
+    # daily irrigation alert
     def show_daily_alert(crop_name, base_irrigation, email):
-        # BACKEND: GET /weather?lat=&lon=&appid=&units=metric (OpenWeatherMap)
-        weather = {"temp": "--", "humidity": "--", "wind": "--", "rain_forecast": "--"}
+        # live weather widgets — updated by background thread
+        temp_val    = ft.Text("-- °C",   size=15, weight="bold", color="white")
+        hum_val     = ft.Text("--%",     size=15, weight="bold", color="white")
+        rain_val    = ft.Text("-- mm",   size=15, weight="bold", color="white")
+        wind_val    = ft.Text("-- km/h", size=15, weight="bold", color="white")
+        rain_info   = ft.Text("-- mm",   size=13, weight="bold", color="green900")
+        rec_val     = ft.Text("-- mm",   size=16, weight="bold", color="white")
+        advice_text = ft.Text("",        size=12, color="grey600", italic=True)
 
         try:
             base_mm = float(base_irrigation)
         except (ValueError, TypeError):
             base_mm = 0.0
 
+        def load_weather():
+            # weather_service takes lat/lon directly — no geocoding needed
+            lat = current_location["lat"]
+            lon = current_location["lon"]
+            w   = get_weather(lat, lon)
+            if not w:
+                return
+
+            rain_mm  = w.get("rain", 0.0)
+            adjusted = max(0.0, base_mm - rain_mm)
+
+            temp_val.value  = f"{w['temp']} °C"
+            hum_val.value   = f"{w['humidity']}%"
+            rain_val.value  = f"{rain_mm} mm"
+            wind_val.value  = f"{w['wind']} km/h"
+            rain_info.value = f"{rain_mm} mm"
+            rec_val.value   = f"{adjusted} mm"
+
+            # calculate_irrigation_advice gives smart watering tip based on temp + humidity
+            advice = calculate_irrigation_advice(w["temp"], w["humidity"])
+            advice_text.value = advice["advice"]
+            page.update()
+
+        threading.Thread(target=load_weather, daemon=True).start()
+
         def go_back(e):
             show_analysis(crop_name, email)
 
-        def info_row(icon, icon_color, label, value):
+        def info_row(icon, icon_color, label, value_widget):
             return ft.Row(
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
                     ft.Row(spacing=8, controls=[ft.Icon(icon, color=icon_color, size=18), ft.Text(label, size=13, color="grey700")]),
-                    ft.Text(value, size=13, weight="bold", color="green900"),
+                    value_widget,
                 ],
             )
 
@@ -694,22 +759,22 @@ def main(page: ft.Page):
                             ft.Row(alignment=ft.MainAxisAlignment.SPACE_AROUND, controls=[
                                 ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4, controls=[
                                     ft.Icon(ft.Icons.THERMOSTAT, color="white", size=20),
-                                    ft.Text(f"{weather['temp']} °C", size=15, weight="bold", color="white"),
+                                    temp_val,
                                     ft.Text("Temp", size=10, color="#c8e6c9"),
                                 ]),
                                 ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4, controls=[
                                     ft.Icon(ft.Icons.WATER_DROP_OUTLINED, color="white", size=20),
-                                    ft.Text(f"{weather['humidity']}%", size=15, weight="bold", color="white"),
+                                    hum_val,
                                     ft.Text("Humidity", size=10, color="#c8e6c9"),
                                 ]),
                                 ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4, controls=[
                                     ft.Icon(ft.Icons.UMBRELLA, color="white", size=20),
-                                    ft.Text(f"{weather['rain_forecast']} mm", size=15, weight="bold", color="white"),
+                                    rain_val,
                                     ft.Text("Rain", size=10, color="#c8e6c9"),
                                 ]),
                                 ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4, controls=[
                                     ft.Icon(ft.Icons.AIR, color="white", size=20),
-                                    ft.Text(f"{weather['wind']} km/h", size=15, weight="bold", color="white"),
+                                    wind_val,
                                     ft.Text("Wind", size=10, color="#c8e6c9"),
                                 ]),
                             ]),
@@ -720,14 +785,16 @@ def main(page: ft.Page):
                     card(ft.Column(spacing=14, controls=[
                         ft.Text("Water Calculation", size=15, weight="bold", color="green900"),
                         ft.Divider(color="green100"),
-                        info_row(ft.Icons.WATER_DROP, "blue700", f"Base irrigation for {crop_name}", f"{base_mm} mm/day"),
-                        info_row(ft.Icons.UMBRELLA,   "blue400", "Expected rainfall today",           f"{weather['rain_forecast']} mm"),
+                        info_row(ft.Icons.WATER_DROP, "blue700", f"Base irrigation for {crop_name}",
+                            ft.Text(f"{base_mm} mm/day", size=13, weight="bold", color="green900")),
+                        info_row(ft.Icons.UMBRELLA, "blue400", "Expected rainfall today", rain_info),
                         ft.Divider(color="green100"),
                         ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, vertical_alignment=ft.CrossAxisAlignment.CENTER, controls=[
                             ft.Text("Recommended today", size=15, weight="bold", color="green900"),
-                            ft.Container(content=ft.Text(f"{base_mm} mm", size=16, weight="bold", color="white"),
-                                bgcolor="green700", border_radius=10, padding=ft.Padding(left=14, right=14, top=6, bottom=6)),
+                            ft.Container(content=rec_val, bgcolor="green700", border_radius=10,
+                                padding=ft.Padding(left=14, right=14, top=6, bottom=6)),
                         ]),
+                        advice_text,
                     ])),
 
                     card(ft.Column(spacing=12, controls=[
@@ -740,21 +807,15 @@ def main(page: ft.Page):
                         ]),
                     ])),
 
-                    ft.Text("* Live weather data requires OpenWeatherMap API and location to be set.",
+                    ft.Text("* requires OWM_API_KEY in .env for live weather data",
                         size=11, color="grey400", italic=True, text_align=ft.TextAlign.CENTER),
                 ]),
             ),
         ])
 
-    # ── FORUM ────────────────────────────────────────────
+    # forum
     def forum_page(email):
         farmer_name = email.split("@")[0].capitalize() if email else "Farmer"
-
-        initial_posts = [
-            {"author": "Alice", "text": "Best time to plant maize in Nairobi?",                  "time": "2h ago"},
-            {"author": "Bob",   "text": "Anyone tried SRI method for rice? Great results!",       "time": "5h ago"},
-            {"author": "Carol", "text": "My beans are yellowing — could be nitrogen deficiency?", "time": "1d ago"},
-        ]
 
         msg_space = ft.TextField(
             hint_text="Write something...", border_radius=20,
@@ -762,24 +823,32 @@ def main(page: ft.Page):
             bgcolor="white", expand=True, min_lines=1, max_lines=4,
             content_padding=ft.Padding(left=16, right=16, top=10, bottom=10),
         )
-        posts_column = ft.Column(spacing=10, controls=[])
+        posts_column = ft.Column(spacing=10, controls=[
+            ft.Text("Loading posts...", size=13, color="grey500")
+        ])
 
         def post_card(post_data):
+            author = post_data.get("author_name") or post_data.get("author", "Farmer")
+            text   = post_data.get("content")    or post_data.get("text",   "")
+            time_s = str(post_data.get("created_at") or post_data.get("time", "Just now"))
+            if len(time_s) > 10:
+                time_s = time_s[:10]
+
             def on_reply(e):
-                msg_space.value = f"@{post_data['author']} "
+                msg_space.value = f"@{author} "
                 page.update()
 
             return ft.Container(
                 content=ft.Column(spacing=8, controls=[
                     ft.Row(spacing=10, vertical_alignment=ft.CrossAxisAlignment.CENTER, controls=[
-                        ft.Container(content=ft.Text(post_data["author"][0], size=13, color="white", weight="bold"),
+                        ft.Container(content=ft.Text(author[0], size=13, color="white", weight="bold"),
                             bgcolor="green700", border_radius=16, width=32, height=32, alignment=ft.Alignment(0, 0)),
                         ft.Column(spacing=1, controls=[
-                            ft.Text(post_data["author"], size=13, weight="bold", color="green900"),
-                            ft.Text(post_data["time"],   size=10,               color="grey400"),
+                            ft.Text(author, size=13, weight="bold", color="green900"),
+                            ft.Text(time_s, size=10,               color="grey400"),
                         ]),
                     ]),
-                    ft.Text(post_data["text"], size=13, color="grey800"),
+                    ft.Text(text, size=13, color="grey800"),
                     ft.Row(alignment=ft.MainAxisAlignment.END, controls=[
                         ft.Container(
                             content=ft.Row(spacing=4, controls=[
@@ -796,14 +865,31 @@ def main(page: ft.Page):
                 shadow=ft.BoxShadow(spread_radius=1, blur_radius=6, color=ft.Colors.with_opacity(0.06, "green900")),
             )
 
-        for post in initial_posts:
-            posts_column.controls.append(post_card(post))
+        def load_posts():
+            # backend (person 3): get_forum_posts fetches from supabase once connected
+            posts = get_forum_posts(limit=50)
+            posts_column.controls.clear()
+            if posts:
+                for p in posts:
+                    posts_column.controls.append(post_card(p))
+            else:
+                # fallback hardcoded until supabase connected
+                for p in [
+                    {"author": "Alice", "text": "Best time to plant maize in Nairobi?",                  "time": "2h ago"},
+                    {"author": "Bob",   "text": "Anyone tried SRI method for rice? Great results!",       "time": "5h ago"},
+                    {"author": "Carol", "text": "My beans are yellowing — could be nitrogen deficiency?", "time": "1d ago"},
+                ]:
+                    posts_column.controls.append(post_card(p))
+            page.update()
+
+        threading.Thread(target=load_posts, daemon=True).start()
 
         def send(e):
             message_text = msg_space.value.strip() if msg_space.value else ""
             if not message_text:
                 return
-            # BACKEND: INSERT into forum_posts (user_id, content, created_at)
+            # backend (person 3): post_to_forum saves to supabase once user_id available from person 1
+            post_to_forum(user_id="", author_name=farmer_name, content=message_text)
             posts_column.controls.insert(0, post_card({"author": farmer_name, "text": message_text, "time": "Just now"}))
             msg_space.value = ""
             page.update()
@@ -842,7 +928,7 @@ def main(page: ft.Page):
             nav_bar("Forum", email),
         ])
 
-    # ── NOTIFICATIONS ────────────────────────────────────
+    # notifications
     def show_notifications(email):
         daily_switch  = ft.Switch(value=True,  active_color="green700")
         rain_switch   = ft.Switch(value=False, active_color="green700")
@@ -851,6 +937,11 @@ def main(page: ft.Page):
 
         def go_back(e):
             profile_page(email)
+
+        def on_save_prefs(e):
+            # backend (person 3): update_user_preferences saves to supabase once user_id available
+            from backend.database_service import update_user_preferences
+            update_user_preferences(user_id="", irrigation_alerts=daily_switch.value, weekly_reports=weekly_switch.value)
 
         def notif_row(label, subtitle, switch_ctrl):
             return ft.Container(
@@ -886,21 +977,35 @@ def main(page: ft.Page):
                         ft.Divider(color="green100", height=1),
                         notif_row("Farming Tips",   "Weekly tips from Soilco AI", tips_switch),
                     ]), padding=0),
-                    ft.Text("* Push notifications require the mobile app", size=11, color="grey400", italic=True),
+                    green_btn("Save Preferences", on_save_prefs, width=320),
+                    ft.Text("* push notifications require the mobile app", size=11, color="grey400", italic=True),
                 ]),
             ),
         ])
 
-    # ── EDIT PROFILE ─────────────────────────────────────
+    # edit profile
     def show_edit_profile(email):
-        name_field     = ft.TextField(label="Full Name",    prefix_icon=ft.Icons.PERSON_OUTLINE,       border_radius=15, border_color="green700", focused_border_color="green900", bgcolor="white")
-        phone_field    = ft.TextField(label="Phone Number", prefix_icon=ft.Icons.PHONE_OUTLINED,       border_radius=15, border_color="green700", focused_border_color="green900", keyboard_type=ft.KeyboardType.PHONE, bgcolor="white")
-        farm_field     = ft.TextField(label="Farm Name",    prefix_icon=ft.Icons.GRASS,                border_radius=15, border_color="green700", focused_border_color="green900", bgcolor="white")
-        location_field = ft.TextField(label="Location",     prefix_icon=ft.Icons.LOCATION_ON_OUTLINED, border_radius=15, border_color="green700", focused_border_color="green900", bgcolor="white")
-        status         = ft.Text("", size=13, text_align=ft.TextAlign.CENTER)
+        name_field     = ft.TextField(label="Full Name",       prefix_icon=ft.Icons.PERSON_OUTLINE,       border_radius=15, border_color="green700", focused_border_color="green900", bgcolor="white")
+        phone_field    = ft.TextField(label="Phone Number",    prefix_icon=ft.Icons.PHONE_OUTLINED,       border_radius=15, border_color="green700", focused_border_color="green900", keyboard_type=ft.KeyboardType.PHONE, bgcolor="white")
+        farm_field     = ft.TextField(label="Farm Name",       prefix_icon=ft.Icons.GRASS,                border_radius=15, border_color="green700", focused_border_color="green900", bgcolor="white")
+        location_field = ft.TextField(label="Location (City)", prefix_icon=ft.Icons.LOCATION_ON_OUTLINED, border_radius=15, border_color="green700", focused_border_color="green900", bgcolor="white",
+                                      value=current_location["city"])
+        status = ft.Text("", size=13, text_align=ft.TextAlign.CENTER)
 
         def on_save(e):
-            # BACKEND: UPDATE users SET full_name, phone, farm_name, location WHERE id=?
+            new_city = location_field.value.strip() if location_field.value else ""
+            if new_city:
+                current_location["city"] = new_city
+                # geocode the new city and update lat/lon for weather and analysis
+                def update_coords():
+                    lat, lon = get_coords_from_city(new_city)
+                    if lat and lon:
+                        current_location["lat"] = lat
+                        current_location["lon"] = lon
+                        print(f"location updated: {new_city} → {lat}, {lon}")
+                threading.Thread(target=update_coords, daemon=True).start()
+
+            # backend (person 1): update users set full_name, phone, farm_name, location where id=?
             status.value = "Profile updated successfully"
             status.color = "green700"
             page.update()
@@ -924,7 +1029,7 @@ def main(page: ft.Page):
                     ])),
         ])
 
-    # ── CHANGE PASSWORD ──────────────────────────────────
+    # change password
     def show_change_password(email=""):
         current_field = ft.TextField(label="Current Password",     prefix_icon=ft.Icons.LOCK_OUTLINE, password=True, can_reveal_password=True, border_radius=15, border_color="green700", focused_border_color="green900", bgcolor="white")
         new_field     = ft.TextField(label="New Password",         prefix_icon=ft.Icons.LOCK_OPEN,    password=True, can_reveal_password=True, border_radius=15, border_color="green700", focused_border_color="green900", bgcolor="white")
@@ -941,7 +1046,7 @@ def main(page: ft.Page):
                 status.value = "New passwords do not match"
                 status.color = "red"
             else:
-                # BACKEND: supabase.auth.update_user({"password": new_field.value})
+                # backend (person 1): supabase.auth.update_user({"password": new_field.value})
                 status.value = "Password updated successfully"
                 status.color = "green700"
             page.update()
@@ -965,7 +1070,7 @@ def main(page: ft.Page):
                     ])),
         ])
 
-    # ── PROFILE ──────────────────────────────────────────
+    # profile
     def profile_page(email=""):
         farmer_name = email.split("@")[0].capitalize() if email else "Farmer"
         user_email  = email or "farmer@soilco.app"
@@ -980,6 +1085,9 @@ def main(page: ft.Page):
             show_notifications(email)
 
         def go_logout(e):
+            current_location["city"] = "Abuja"
+            current_location["lat"]  = 9.0643305
+            current_location["lon"]  = 7.4892974
             login_page()
 
         def setting_row(icon, label, on_tap):
@@ -1006,7 +1114,7 @@ def main(page: ft.Page):
                             ft.Text(user_email,  size=12,               color="grey600"),
                             ft.Row(spacing=6, alignment=ft.MainAxisAlignment.CENTER, controls=[
                                 ft.Icon(ft.Icons.LOCATION_ON, color="green600", size=14),
-                                ft.Text("Location not set", size=12, color="grey500"),
+                                ft.Text(current_location["city"], size=12, color="grey500"),
                             ]),
                         ]),
                         bgcolor="white", padding=ft.Padding(top=28, bottom=24, left=0, right=0), width=page.window.width),
@@ -1038,7 +1146,7 @@ def main(page: ft.Page):
             nav_bar("Profile", email),
         ])
 
-    # ── START ────────────────────────────────────────────
+    # start
     splash_screen()
 
 
