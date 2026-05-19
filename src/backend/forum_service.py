@@ -52,7 +52,7 @@ def get_forum_posts(limit: int = 50) -> list:
     try:
         response = supabase.table("forum") \
             .select("*") \
-            .order("created_at", descending=True) \
+            .order("created_at", desc=True) \
             .limit(limit) \
             .execute()
         return response.data if response.data else []
