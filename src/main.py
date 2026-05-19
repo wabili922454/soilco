@@ -5,7 +5,8 @@ import os
 from backend.analysis_service import analyze_crop, get_coords_from_city
 from backend.weather_service import get_weather, calculate_irrigation_advice
 from backend.forum_service import get_forum_posts, post_to_forum
-from backend.supabase_client import save_analysis, get_recent_analyses
+from backend.database_service import save_analysis, get_recent_analyses, update_user_preferences
+from backend.auth_service import sign_in, sign_up, sign_out, reset_password, update_password, update_profile
 
 welcome_flag = os.path.join(os.path.expanduser("~"), ".soilco_onboarding_seen")
 
@@ -21,9 +22,9 @@ DIFF_DESCRIPTION = {
     "Hard":   "Significant soil correction required to grow this crop in your region.",
 }
 
-# shared location state — updated when user saves profile
-# analysis_service handles geocoding (nominatim), weather_service takes lat/lon directly
+# shared location and session state — updated on login and profile save
 current_location = {"city": "Abuja", "lat": 9.0643305, "lon": 7.4892974}
+current_user     = {"id": "", "email": "", "name": ""}
 
 
 def main(page: ft.Page):
@@ -188,9 +189,17 @@ def main(page: ft.Page):
                 status.value = "fill in all fields"
                 status.color = "red"
                 page.update()
+                return
+
+            result = sign_in(email_field.value, password_field.value)
+            if result["success"]:
+                current_user["id"]    = result["user"].id
+                current_user["email"] = result["user"].email
+                home_page(result["user"].email)
             else:
-                # backend (person 1): replace with supabase.auth.sign_in_with_password()
-                home_page(email_field.value)
+                status.value = result.get("error", "login failed")
+                status.color = "red"
+                page.update()
 
         def go_forgot(e):
             forgotPasswordPage()
@@ -243,9 +252,18 @@ def main(page: ft.Page):
                 status.value = "fill in all fields"
                 status.color = "red"
                 page.update()
+                return
+
+            result = sign_up(name_field.value, email_field.value, password_field.value)
+            if result["success"]:
+                current_user["id"]    = result["user"].id
+                current_user["email"] = result["user"].email
+                current_user["name"]  = name_field.value
+                home_page(result["user"].email)
             else:
-                # backend (person 1): replace with supabase.auth.sign_up()
-                home_page(email_field.value)
+                status.value = result.get("error", "signup failed")
+                status.color = "red"
+                page.update()
 
         def go_login(e):
             login_page()
@@ -285,10 +303,15 @@ def main(page: ft.Page):
             if not email_field.value:
                 status.value = "Please enter your email"
                 status.color = "red"
-            else:
-                # backend (person 1): replace with supabase.auth.reset_password_email()
+                page.update()
+                return
+            result = reset_password(email_field.value)
+            if result["success"]:
                 status.value = f"Reset link sent to {email_field.value}"
                 status.color = "green700"
+            else:
+                status.value = result.get("error", "reset failed")
+                status.color = "red"
             page.update()
 
         def go_login(e):
@@ -366,7 +389,7 @@ def main(page: ft.Page):
             )
 
         def load_home_data():
-            # weather_service takes lat/lon directly — no geocoding needed here
+            # weather_service takes lat/lon directly
             lat = current_location["lat"]
             lon = current_location["lon"]
             w   = get_weather(lat, lon)
@@ -377,9 +400,8 @@ def main(page: ft.Page):
                 location_text.value = current_location["city"]
                 page.update()
 
-            # backend (person 3): get_recent_analyses fetches from supabase once connected
-            # user_id comes from person 1's auth — pass empty string for now
-            history = get_recent_analyses(user_id="")
+            # get_recent_analyses fetches from supabase using real user_id
+            history = get_recent_analyses(user_id=current_user["id"]) if current_user["id"] else None
             analyses_col.controls.clear()
             analyses_col.controls.append(
                 ft.Text("Previous Analyses", size=16, weight="bold", color="green900")
@@ -388,7 +410,6 @@ def main(page: ft.Page):
                 for item in history:
                     analyses_col.controls.append(prev_crop_card(item))
             else:
-                # fallback hardcoded until supabase connected
                 for item in [
                     {"crop": "Maize", "date": "Feb 28", "weeks": "12", "status": "Optimal"},
                     {"crop": "Wheat", "date": "Feb 20", "weeks": "8",  "status": "Acidic"},
@@ -561,9 +582,9 @@ def main(page: ft.Page):
             diff_badge_row.bgcolor  = diff_color[d]
             page.update()
 
-            # backend (person 3): save_analysis stores result in supabase
-            # user_id comes from person 1's auth — pass empty string for now
-            save_analysis(user_id="", crop_name=crop_name, analysis_data=result)
+            # save_analysis stores result in supabase using real user_id
+            if current_user["id"]:
+                save_analysis(user_id=current_user["id"], crop_name=crop_name, analysis_data=result)
 
         threading.Thread(target=load_data, daemon=True).start()
 
@@ -839,7 +860,7 @@ def main(page: ft.Page):
 
     # forum
     def forum_page(email):
-        farmer_name = email.split("@")[0].capitalize() if email else "Farmer"
+        farmer_name = current_user["name"] or email.split("@")[0].capitalize() if email else "Farmer"
 
         msg_space = ft.TextField(
             hint_text="Write something...", border_radius=20,
@@ -890,14 +911,13 @@ def main(page: ft.Page):
             )
 
         def load_posts():
-            # backend (person 3): get_forum_posts fetches from supabase once connected
+            # get_forum_posts fetches from supabase
             posts = get_forum_posts(limit=50)
             posts_column.controls.clear()
             if posts:
                 for p in posts:
                     posts_column.controls.append(post_card(p))
             else:
-                # fallback hardcoded until supabase connected
                 for p in [
                     {"author": "Alice", "text": "Best time to plant maize in Nairobi?",                  "time": "2h ago"},
                     {"author": "Bob",   "text": "Anyone tried SRI method for rice? Great results!",       "time": "5h ago"},
@@ -912,8 +932,8 @@ def main(page: ft.Page):
             message_text = msg_space.value.strip() if msg_space.value else ""
             if not message_text:
                 return
-            # backend (person 3): post_to_forum saves to supabase once user_id available from person 1
-            post_to_forum(user_id="", author_name=farmer_name, content=message_text)
+            # post_to_forum saves to supabase using real user_id
+            post_to_forum(user_id=current_user["id"], author_name=farmer_name, content=message_text)
             posts_column.controls.insert(0, post_card({"author": farmer_name, "text": message_text, "time": "Just now"}))
             msg_space.value = ""
             page.update()
@@ -963,9 +983,12 @@ def main(page: ft.Page):
             profile_page(email)
 
         def on_save_prefs(e):
-            # backend (person 3): update_user_preferences saves to supabase once user_id available
-            from backend.supabase_client import update_user_preferences
-            update_user_preferences(user_id="", irrigation_alerts=daily_switch.value, weekly_reports=weekly_switch.value)
+            if current_user["id"]:
+                update_user_preferences(
+                    user_id=current_user["id"],
+                    irrigation_alerts=daily_switch.value,
+                    weekly_reports=weekly_switch.value
+                )
 
         def notif_row(label, subtitle, switch_ctrl):
             return ft.Container(
@@ -1029,7 +1052,16 @@ def main(page: ft.Page):
                         print(f"location updated: {new_city} → {lat}, {lon}")
                 threading.Thread(target=update_coords, daemon=True).start()
 
-            # backend (person 1): update users set full_name, phone, farm_name, location where id=?
+            # update_profile saves to supabase using real user_id
+            if current_user["id"]:
+                update_profile(
+                    user_id=current_user["id"],
+                    full_name=name_field.value or "",
+                    phone=phone_field.value or "",
+                    farm_name=farm_field.value or "",
+                    location=new_city,
+                )
+
             status.value = "Profile updated successfully"
             status.color = "green700"
             page.update()
@@ -1070,9 +1102,13 @@ def main(page: ft.Page):
                 status.value = "New passwords do not match"
                 status.color = "red"
             else:
-                # backend (person 1): supabase.auth.update_user({"password": new_field.value})
-                status.value = "Password updated successfully"
-                status.color = "green700"
+                result = update_password(new_field.value)
+                if result["success"]:
+                    status.value = "Password updated successfully"
+                    status.color = "green700"
+                else:
+                    status.value = result.get("error", "update failed")
+                    status.color = "red"
             page.update()
 
         def go_back(e):
@@ -1096,7 +1132,7 @@ def main(page: ft.Page):
 
     # profile
     def profile_page(email=""):
-        farmer_name = email.split("@")[0].capitalize() if email else "Farmer"
+        farmer_name = current_user["name"] or email.split("@")[0].capitalize() if email else "Farmer"
         user_email  = email or "farmer@soilco.app"
 
         def go_edit_profile(e):
@@ -1109,6 +1145,10 @@ def main(page: ft.Page):
             show_notifications(email)
 
         def go_logout(e):
+            sign_out()
+            current_user["id"]    = ""
+            current_user["email"] = ""
+            current_user["name"]  = ""
             current_location["city"] = "Abuja"
             current_location["lat"]  = 9.0643305
             current_location["lon"]  = 7.4892974
