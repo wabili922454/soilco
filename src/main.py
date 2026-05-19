@@ -852,8 +852,7 @@ def main(page: ft.Page):
                         ]),
                     ])),
 
-                    ft.Text("* requires OWM_API_KEY in .env for live weather data",
-                        size=11, color="grey400", italic=True, text_align=ft.TextAlign.CENTER),
+                    
                 ]),
             ),
         ])
